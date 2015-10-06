@@ -27,7 +27,6 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,7 +71,15 @@ namespace MarcelJoachimKloubert.FastCGI.Http
 
             #endregion Constructors (1)
 
-            #region Properties (4)
+            #region Properties (6)
+
+            /// <summary>
+            /// <see cref="IHttpRequest.Body" />
+            /// </summary>
+            public byte[] Body
+            {
+                get { return this.Context.Body; }
+            }
 
             /// <summary>
             /// <see cref="IHttpRequest.Context" />
@@ -89,6 +96,11 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             public IDictionary<string, string> Headers { get; protected set; }
 
             /// <summary>
+            /// <see cref="IHttpRequest.Headers" />
+            /// </summary>
+            public string Method { get; protected set; }
+
+            /// <summary>
             /// <see cref="IHttpRequest.Query" />
             /// </summary>
             public IDictionary<string, string> Query { get; protected set; }
@@ -98,7 +110,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             /// </summary>
             public Uri Uri { get; protected set; }
 
-            #endregion Properties (4)
+            #endregion Properties (6)
 
             #region Methods (1)
 
@@ -109,6 +121,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             {
                 var headers = new Dictionary<string, string>(new CaseInsensitiveComparer());
                 var query = new Dictionary<string, string>(new CaseInsensitiveComparer());
+                string method = null;
 
                 if (this.Context.Parameters != null)
                 {
@@ -177,6 +190,10 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                                     }
                                 }
                             }
+                            else if (key == "REQUEST_METHOD")
+                            {
+                                method = Encoding.ASCII.GetString(entry.Value ?? new byte[0]);
+                            }
                         }
 
                         // uri
@@ -239,7 +256,14 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                     }
                 }
 
+                method = (method ?? string.Empty).ToUpper().Trim();
+                if (method == "")
+                {
+                    method = "GET";
+                }
+
                 this.Headers = headers;
+                this.Method = method;
                 this.Query = query;
             }
 

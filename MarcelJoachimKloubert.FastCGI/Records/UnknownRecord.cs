@@ -27,7 +27,6 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -85,7 +84,7 @@ namespace MarcelJoachimKloubert.FastCGI.Records
             private set;
         }
 
-        #endregion Properties (2)
+        #endregion Properties (3)
 
         #region Methods (1)
 

@@ -27,7 +27,6 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
 using System;
 using System.Text;
 
@@ -99,7 +98,6 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             {
                 if (this.RaiseRequest(request, response))
                 {
-
                 }
                 else
                 {
@@ -172,6 +170,6 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                                           new HttpRequestEventArgs(request, response));
         }
 
-        #endregion Methods (5)
+        #endregion Methods (6)
     }
 }

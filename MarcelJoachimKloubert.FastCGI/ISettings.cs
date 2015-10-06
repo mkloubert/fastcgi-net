@@ -27,7 +27,8 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
+using System;
+using System.IO;
 using System.Net;
 
 namespace MarcelJoachimKloubert.FastCGI
@@ -37,7 +38,12 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public interface ISettings
     {
-        #region Properties (3)
+        #region Properties (4)
+
+        /// <summary>
+        /// Provides the stream that is used to store the request body.
+        /// </summary>
+        Func<IRequestContext, Stream> BodyStreamProvider { get; }
 
         /// <summary>
         /// Gets the handler to use.
@@ -54,6 +60,6 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         int Port { get; }
 
-        #endregion Properties (3)
+        #endregion Properties (4)
     }
 }

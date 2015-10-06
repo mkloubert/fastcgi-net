@@ -27,9 +27,9 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
 using MarcelJoachimKloubert.FastCGI.Records;
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
@@ -76,6 +76,9 @@ namespace MarcelJoachimKloubert.FastCGI
                 this._CONTEXT = new RequestContext(this);
                 this._CONTEXT.Address = this.Server._SETTINGS.LocalAddress ?? IPAddress.Loopback;
                 this._CONTEXT.Port = this.Server._SETTINGS.Port;
+
+                this._CONTEXT.BodyStream = (this.Server._SETTINGS.BodyStreamProvider ?? this.DefaultBodyStreamProvider)(this._CONTEXT) ??
+                                           new MemoryStream();
             }
 
             #endregion Constructors (1)
@@ -126,7 +129,17 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Properties (5)
 
-            #region Methods (4)
+            #region Methods (5)
+
+            /// <summary>
+            /// The default body stream provider of that object.
+            /// </summary>
+            /// <param name="context">The underlying FastCGI context.</param>
+            /// <returns>The created stream.</returns>
+            protected virtual Stream DefaultBodyStreamProvider(IRequestContext context)
+            {
+                return new MemoryStream();
+            }
 
             /// <summary>
             /// handle next steps.
@@ -190,7 +203,10 @@ namespace MarcelJoachimKloubert.FastCGI
             {
                 if (record.Data.LongLength > 0)
                 {
+                    this._CONTEXT.BodyStream
+                                 .Write(record.Data, 0, record.Data.Length);
 
+                    this.HandleNext();
                 }
                 else
                 {
@@ -228,7 +244,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 return this.Server.RaiseError(ex, rethrow);
             }
 
-            #endregion Methods (4)
+            #endregion Methods (5)
         }
     }
 }

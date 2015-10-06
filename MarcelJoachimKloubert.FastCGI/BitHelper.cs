@@ -27,9 +27,9 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace MarcelJoachimKloubert.FastCGI
@@ -39,7 +39,7 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public static class BitHelper
     {
-        #region Methods (3)
+        #region Methods (4)
 
         /// <summary>
         /// Returns binary data as array.
@@ -78,6 +78,50 @@ namespace MarcelJoachimKloubert.FastCGI
         }
 
         /// <summary>
+        /// Returns the (whole) content of a stream as byte array.
+        /// </summary>
+        /// <param name="stream">The stream to return.</param>
+        /// <returns>
+        /// The data of <paramref name="stream" />.
+        /// </returns>
+        public static byte[] ToByteArray(Stream stream)
+        {
+            if (stream == null)
+            {
+                return null;
+            }
+
+            if (stream is MemoryStream)
+            {
+                return ((MemoryStream)stream).ToArray();
+            }
+
+            long? oldPosition = null;
+            try
+            {
+                if (stream.CanSeek)
+                {
+                    oldPosition = stream.Position;
+                    stream.Position = 0;
+                }
+
+                using (var temp = new MemoryStream())
+                {
+                    stream.CopyTo(temp);
+
+                    return temp.ToArray();
+                }
+            }
+            finally
+            {
+                if (oldPosition.HasValue)
+                {
+                    stream.Position = oldPosition.Value;
+                }
+            }
+        }
+
+        /// <summary>
         /// Converts binary data to <see cref="ushort" />.
         /// </summary>
         /// <param name="data">The input data.</param>
@@ -88,6 +132,6 @@ namespace MarcelJoachimKloubert.FastCGI
                                          0);
         }
 
-        #endregion Methods (3)
+        #endregion Methods (4)
     }
 }

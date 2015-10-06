@@ -27,8 +27,8 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
 using MarcelJoachimKloubert.FastCGI.Records;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -40,6 +40,14 @@ namespace MarcelJoachimKloubert.FastCGI
     {
         internal class RequestContext : IRequestContext
         {
+            #region Fields (3)
+
+            private Lazy<byte[]> _body;
+            private Stream _bodyStream;
+            private IRequestParameters _parameters;
+
+            #endregion Fields (3)
+
             #region Constructors (1)
 
             internal RequestContext(RequestHandler handler)
@@ -49,12 +57,31 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Constructors (1)
 
-            #region Properties (5)
+            #region Properties (6)
 
             public IPAddress Address
             {
                 get;
                 internal set;
+            }
+
+            public byte[] Body
+            {
+                get { return this._body.Value; }
+            }
+
+            internal Stream BodyStream
+            {
+                get { return this._bodyStream; }
+
+                set
+                {
+                    this._bodyStream = value;
+                    this._body = new Lazy<byte[]>(() =>
+                        {
+                            return BitHelper.ToByteArray(value);
+                        });
+                }
             }
 
             internal RequestHandler Handler
@@ -65,8 +92,49 @@ namespace MarcelJoachimKloubert.FastCGI
 
             public IRequestParameters Parameters
             {
-                get;
-                internal set;
+                get { return this._parameters; }
+
+                internal set
+                {
+                    if (value == null)
+                    {
+                        return;
+                    }
+
+                    var @params = value.Parameters;
+                    if (@params == null)
+                    {
+                        return;
+                    }
+
+                    if (this._parameters == null)
+                    {
+                        this._parameters = value;
+                    }
+                    else
+                    {
+                        // merge old with new
+
+                        var curParams = this._parameters.Parameters ?? new Dictionary<string, byte[]>(new CaseInsensitiveComparer());
+
+                        var newParams = new RequestParameters();
+                        newParams.Parameters = new Dictionary<string, byte[]>(curParams, new CaseInsensitiveComparer());
+
+                        foreach (var entry in @params)
+                        {
+                            if (!newParams.Parameters.ContainsKey(entry.Key))
+                            {
+                                newParams.Parameters.Add(entry);
+                            }
+                            else
+                            {
+                                newParams.Parameters[entry.Key] = entry.Value;
+                            }
+                        }
+
+                        this._parameters = newParams;
+                    }
+                }
             }
 
             public int Port
@@ -75,7 +143,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 internal set;
             }
 
-            #endregion Properties (5)
+            #endregion Properties (6)
 
             #region Methods (2)
 

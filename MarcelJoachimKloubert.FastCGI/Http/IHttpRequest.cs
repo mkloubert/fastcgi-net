@@ -27,7 +27,6 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
 using System;
 using System.Collections.Generic;
 
@@ -38,7 +37,12 @@ namespace MarcelJoachimKloubert.FastCGI.Http
     /// </summary>
     public interface IHttpRequest
     {
-        #region Properties (4)
+        #region Properties (6)
+
+        /// <summary>
+        /// Gets the request body.
+        /// </summary>
+        byte[] Body { get; }
 
         /// <summary>
         /// Gets the underlying FastCGI context.
@@ -51,6 +55,11 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         IDictionary<string, string> Headers { get; }
 
         /// <summary>
+        /// Gets the uppercase name of the HTTP method.
+        /// </summary>
+        string Method { get; }
+
+        /// <summary>
         /// Gets the list of variables from the query string.
         /// </summary>
         IDictionary<string, string> Query { get; }
@@ -60,6 +69,6 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// </summary>
         Uri Uri { get; }
 
-        #endregion Properties (4)
+        #endregion Properties (6)
     }
 }

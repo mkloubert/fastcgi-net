@@ -27,7 +27,8 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
+using System;
+using System.IO;
 using System.Net;
 
 namespace MarcelJoachimKloubert.FastCGI
@@ -49,7 +50,12 @@ namespace MarcelJoachimKloubert.FastCGI
 
         #endregion Constructors (1)
 
-        #region Properties (3)
+        #region Properties (4)
+
+        /// <summary>
+        /// <see cref="ISettings.BodyStreamProvider" />
+        /// </summary>
+        public Func<IRequestContext, Stream> BodyStreamProvider { get; set; }
 
         /// <summary>
         /// <see cref="ISettings.LocalAddress" />
@@ -66,6 +72,6 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         public int Port { get; set; }
 
-        #endregion Properties (3)
+        #endregion Properties (4)
     }
 }

@@ -27,7 +27,6 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-
 using System.Collections.Generic;
 using System.Net;
 
@@ -38,12 +37,17 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public interface IRequestContext
     {
-        #region Properties (3)
+        #region Properties (4)
 
         /// <summary>
         /// Gets the server address.
         /// </summary>
         IPAddress Address { get; }
+
+        /// <summary>
+        /// Gets the request body.
+        /// </summary>
+        byte[] Body { get; }
 
         /// <summary>
         /// Gets the parameters.
@@ -55,7 +59,7 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         int Port { get; }
 
-        #endregion Properties (3)
+        #endregion Properties (4)
 
         #region Methods (2)
 
