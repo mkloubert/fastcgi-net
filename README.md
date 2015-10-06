@@ -1,3 +1,3 @@
 # fastcgi-net
 
-FastCGI library for .NET written in C#
+(FastCGI)[http://www.fastcgi.com) library for .NET written in C#
