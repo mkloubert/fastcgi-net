@@ -40,7 +40,7 @@ using (var server = new global::MarcelJoachimKloubert.FastCGI.Server(settings))
 {
     server.Start();
     
-    // press ENTER to dispose the server
+    // press ENTER to stop and dispose the server
     Console.ReadLine();
 }
 ```
