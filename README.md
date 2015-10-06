@@ -33,8 +33,10 @@ settings.Handler = httpHandler;
 
 ### Start server
 
+Create the instance from the `settings` variable:
+
 ```csharp
-using (var server = new global::MarcelJoachimKloubert.FastCGI.Server())
+using (var server = new global::MarcelJoachimKloubert.FastCGI.Server(settings))
 {
     server.Start();
     
