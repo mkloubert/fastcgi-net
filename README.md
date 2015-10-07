@@ -64,7 +64,7 @@ http {
     
         location / {
             root           html;
-            fastcgi_pass   127.0.0.1:9001;
+            fastcgi_pass   127.0.0.1:9002;
             fastcgi_index  index.html;
             fastcgi_param  SCRIPT_FILENAME	$document_root$fastcgi_script_name;
             
