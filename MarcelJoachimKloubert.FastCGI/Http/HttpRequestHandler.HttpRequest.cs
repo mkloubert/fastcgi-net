@@ -28,8 +28,10 @@
  **********************************************************************************************************************/
 
 using MarcelJoachimKloubert.FastCGI.Collections;
+using MarcelJoachimKloubert.FastCGI.Helpers;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -43,6 +45,12 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// </summary>
         protected class HttpRequest : FastCGIObject, IHttpRequest
         {
+            #region Fields (1)
+
+            private Lazy<IDictionary<string, string>> _postVars;
+
+            #endregion Fields (1)
+
             #region Constructors (1)
 
             /// <summary>
@@ -72,7 +80,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
 
             #endregion Constructors (1)
 
-            #region Properties (5)
+            #region Properties (9)
 
             /// <summary>
             /// <see cref="IHttpRequest.Context" />
@@ -89,23 +97,209 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             public IDictionary<string, string> Headers { get; protected set; }
 
             /// <summary>
+            /// <see cref="IHttpRequest.IsMethodAllowed" />
+            /// </summary>
+            public bool IsMethodAllowed
+            {
+                get
+                {
+                    return this.SupportedMethods
+                               .Select(x => (x ?? string.Empty).ToUpper().Trim())
+                               .Contains((this.Method ?? string.Empty).ToUpper().Trim());
+                }
+            }
+
+            /// <summary>
+            /// <see cref="IHttpRequest.KnownMethod" />
+            /// </summary>
+            public HttpMethod? KnownMethod
+            {
+                get
+                {
+                    HttpMethod result;
+                    if (Enum.TryParse<HttpMethod>(this.Method, true, out result))
+                    {
+                        return result;
+                    }
+
+                    return null;
+                }
+            }
+
+            /// <summary>
             /// <see cref="IHttpRequest.Headers" />
             /// </summary>
             public string Method { get; protected set; }
 
             /// <summary>
-            /// <see cref="IHttpRequest.Query" />
+            /// <see cref="IHttpRequest.PostVars" />
             /// </summary>
-            public IDictionary<string, string> Query { get; protected set; }
+            public IDictionary<string, string> PostVars
+            {
+                get { return this._postVars.Value; }
+            }
+
+            /// <summary>
+            /// <see cref="IHttpRequest.QueryVars" />
+            /// </summary>
+            public IDictionary<string, string> QueryVars { get; protected set; }
+
+            /// <summary>
+            /// <see cref="IHttpRequest.QueryVars" />
+            /// </summary>
+            public IList<string> SupportedMethods { get; protected set; }
 
             /// <summary>
             /// <see cref="IHttpRequest.Uri" />
             /// </summary>
             public Uri Uri { get; protected set; }
 
-            #endregion Properties (5)
+            #endregion Properties (9)
 
-            #region Methods (1)
+            #region Methods (4)
+
+            /// <summary>
+            /// Extracts variables from a string and writes it to a dictionary.
+            /// </summary>
+            /// <param name="chars">The string / chars with the variables.</param>
+            /// <param name="target">The target dictionary.</param>
+            protected void GetVariables(IEnumerable<char> chars, IDictionary<string, string> target)
+            {
+                using (var reader = new StringReader(StringHelper.AsString(chars, true)))
+                {
+                    this.GetVariables(reader, target);
+                }
+            }
+
+            /// <summary>
+            /// Extracts variables from a <see cref="TextReader" /> and writes it to a dictionary.
+            /// </summary>
+            /// <param name="reader">The reader with the variables.</param>
+            /// <param name="target">The target dictionary.</param>
+            protected void GetVariables(TextReader reader, IDictionary<string, string> target)
+            {
+                if (reader == null)
+                {
+                    return;
+                }
+
+                const int STATE_WHITESPACE = 0;
+                const int STATE_NAME = 1;
+                const int STATE_VALUE = 2;
+
+                var state = STATE_WHITESPACE;
+
+                string currentVarName = null;
+                string currentVarValue = null;
+
+                Action reset = () =>
+                    {
+                        currentVarName = null;
+                        currentVarValue = null;
+                    };
+
+                Action appendNext = () =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(currentVarName))
+                        {
+                            currentVarName = currentVarName.Trim();
+
+                            if (!string.IsNullOrEmpty(currentVarValue))
+                            {
+                                currentVarValue = global::System.Uri.UnescapeDataString(currentVarValue);
+                            }
+                            else
+                            {
+                                currentVarValue = null;
+                            }
+
+                            if (target != null)
+                            {
+                                CollectionHelper.AddOrSet(target,
+                                                          currentVarName, currentVarValue);
+                            }
+                        }
+
+                        reset();
+                    };
+
+                Action<char> handleChar = (c) =>
+                    {
+                        switch (state)
+                        {
+                            case STATE_NAME:
+                                if (c == '=')
+                                {
+                                    // next is the value
+                                    state = STATE_VALUE;
+                                }
+                                else if (c == '&')
+                                {
+                                    // start with new variable
+
+                                    appendNext();
+                                    state = STATE_NAME;
+                                }
+                                else
+                                {
+                                    currentVarName += c;
+                                }
+                                break;
+
+                            case STATE_VALUE:
+                                if (c == '&')
+                                {
+                                    // start with new variable
+
+                                    appendNext();
+                                    state = STATE_NAME;
+                                }
+                                else
+                                {
+                                    currentVarValue += c;
+                                }
+                                break;
+                        }
+                    };
+
+                var buffer = new char[1];
+                int charsRead;
+                while ((charsRead = reader.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    for (var i = 0; i < charsRead; i++)
+                    {
+                        var c = buffer[i];
+
+                        switch (state)
+                        {
+                            case STATE_WHITESPACE:
+                                if (char.IsWhiteSpace(c) ||
+                                    (c == '?') ||
+                                    (c == '&'))
+                                {
+                                    // leading "whitespace" character
+                                    continue;
+                                }
+                                else
+                                {
+                                    // begin
+
+                                    reset();
+                                    state = STATE_NAME;
+
+                                    handleChar(c);
+                                }
+                                break;
+
+                            default:
+                                handleChar(c);
+                                break;
+                        }
+                    }
+                }
+
+                appendNext();
+            }
 
             /// <summary>
             /// Initializes that class.
@@ -113,7 +307,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             protected virtual void OnInit()
             {
                 var headers = new Dictionary<string, string>(new CaseInsensitiveComparer());
-                var query = new Dictionary<string, string>(new CaseInsensitiveComparer());
+                var queryVars = new Dictionary<string, string>(new CaseInsensitiveComparer());
                 string method = null;
 
                 if (this.Context.Parameters != null)
@@ -148,39 +342,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                                 var queryString = Encoding.UTF8.GetString(entry.Value ?? new byte[0]).TrimStart();
                                 if (!string.IsNullOrWhiteSpace(queryString))
                                 {
-                                    var parts = queryString.Split('&');
-                                    foreach (var p in parts)
-                                    {
-                                        if (string.IsNullOrWhiteSpace(p))
-                                        {
-                                            continue;
-                                        }
-
-                                        string queryKey = null;
-                                        string queryValue = null;
-
-                                        var queryKeyAndValue = p.Split('=');
-
-                                        if (queryKeyAndValue.Length > 0)
-                                        {
-                                            queryKey = (queryKeyAndValue[0] ?? string.Empty).ToLower().Trim();
-                                        }
-
-                                        if (queryKeyAndValue.Length > 1)
-                                        {
-                                            queryValue = Uri.UnescapeDataString(string.Join("=",
-                                                                                            queryKeyAndValue.Skip(1)));
-                                        }
-
-                                        if (!query.ContainsKey(queryKey))
-                                        {
-                                            query.Add(queryKey, queryValue);
-                                        }
-                                        else
-                                        {
-                                            query[queryKey] = queryValue;
-                                        }
-                                    }
+                                    this.GetVariables(queryString, queryVars);
                                 }
                             }
                             else if (key == "REQUEST_METHOD")
@@ -255,12 +417,36 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                     method = "GET";
                 }
 
+                this._postVars = new Lazy<IDictionary<string, string>>(() =>
+                    {
+                        var postVars = new Dictionary<string, string>(new CaseInsensitiveComparer());
+
+                        if ("POST" == method)
+                        {
+                            try
+                            {
+                                int? readBuffferSize = null;
+                                using (var reader = new StreamReader(this.Context.GetBodyStream(ref readBuffferSize), Encoding.UTF8))
+                                {
+                                    this.GetVariables(reader, postVars);
+                                }
+                            }
+                            catch
+                            {
+                                // ignore errors
+                            }
+                        }
+
+                        return new ReadOnlyDictionary<string, string>(postVars);
+                    });
+
                 this.Headers = new ReadOnlyDictionary<string, string>(headers);
                 this.Method = method;
-                this.Query = new ReadOnlyDictionary<string, string>(query);
+                this.QueryVars = new ReadOnlyDictionary<string, string>(queryVars);
+                this.SupportedMethods = new List<string>();
             }
 
-            #endregion Methods (1)
+            #endregion Methods (4)
         }
     }
 }

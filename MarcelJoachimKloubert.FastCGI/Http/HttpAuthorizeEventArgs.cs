@@ -28,62 +28,58 @@
  **********************************************************************************************************************/
 
 using System;
-using System.Collections.Generic;
 
 namespace MarcelJoachimKloubert.FastCGI.Http
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Arguments for an event that checks credentials.
     /// </summary>
-    public interface IHttpRequest
+    public class HttpAuthorizeEventArgs : EventArgs
     {
-        #region Properties (9)
+        #region Constructors (1)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Initializes a new instance of the <see cref="HttpAuthorizeEventArgs" /> class.
         /// </summary>
-        IRequestContext Context { get; }
+        /// <param name="username">The value for the <see cref="HttpAuthorizeEventArgs.Username" /> property.</param>
+        /// <param name="password">The value for the <see cref="HttpAuthorizeEventArgs.Password" /> property.</param>
+        public HttpAuthorizeEventArgs(string username, string password)
+        {
+            this.Username = username;
+            this.Password = password;
+        }
+
+        #endregion Constructors (1)
+
+        #region Properties (3)
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Gets or sets if the user is authorized (<see langword="true" />) or not (<see langword="false" />).
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        public bool IsAuthorized
+        {
+            get;
+            set;
+        }
 
         /// <summary>
-        /// Checks if the value of <see cref="IHttpRequest.Method" /> is part of <see cref="IHttpRequest.SupportedMethods" />
+        /// Gets the password.
         /// </summary>
-        bool IsMethodAllowed { get; }
+        public string Password
+        {
+            get;
+            private set;
+        }
 
         /// <summary>
-        /// Gets the known HTTP method or <see langword="null" /> for unknown.
+        /// Gets the username.
         /// </summary>
-        HttpMethod? KnownMethod { get; }
+        public string Username
+        {
+            get;
+            private set;
+        }
 
-        /// <summary>
-        /// Gets the uppercase name of the HTTP method.
-        /// </summary>
-        string Method { get; }
-
-        /// <summary>
-        /// Gets the list of variables from the post request.
-        /// </summary>
-        IDictionary<string, string> PostVars { get; }
-
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> QueryVars { get; }
-
-        /// <summary>
-        /// Gets a list of supported methods. That list can be changed for the response.
-        /// </summary>
-        IList<string> SupportedMethods { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (9)
+        #endregion Properties (3)
     }
 }

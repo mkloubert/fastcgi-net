@@ -53,6 +53,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Collections\DictionaryWrapperBase.cs" />
     <Compile Include="FastCGIObject.cs" />
     <Compile Include="Helpers\BitHelper.cs" />
     <Compile Include="CaseInsensitiveComparer.cs" />
@@ -60,7 +61,9 @@
     <Compile Include="Helpers\CollectionHelper.cs" />
     <Compile Include="Helpers\StringHelper.cs" />
     <Compile Include="Http\HttpAfterRequestEventArgs.cs" />
+    <Compile Include="Http\HttpAuthorizeEventArgs.cs" />
     <Compile Include="Http\HttpBeforeRequestEventArgs.cs" />
+    <Compile Include="Http\HttpMethod.cs" />
     <Compile Include="Http\HttpRequestClientErrorEventArgs.cs" />
     <Compile Include="Http\HttpRequestErrorEventArgs.cs" />
     <Compile Include="Http\HttpRequestEventArgs.cs" />
@@ -79,7 +82,9 @@
     <Compile Include="IRequestParameters.cs" />
     <Compile Include="ISettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Records\EndRequestRecordBuilder.cs" />
     <Compile Include="Records\InputRecord.cs" />
+    <Compile Include="Records\ProtocolStatus.cs" />
     <Compile Include="Records\RecordBuilder.cs" />
     <Compile Include="Server.RequestContext.cs">
       <DependentUpon>Server.cs</DependentUpon>

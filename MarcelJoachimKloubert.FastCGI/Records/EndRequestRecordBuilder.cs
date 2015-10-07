@@ -27,63 +27,114 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Helpers;
 using System;
-using System.Collections.Generic;
+using System.IO;
 
-namespace MarcelJoachimKloubert.FastCGI.Http
+namespace MarcelJoachimKloubert.FastCGI.Records
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Builds FastCGI records for ending a request.
     /// </summary>
-    public interface IHttpRequest
+    public class EndRequestRecordBuilder : RecordBuilder
     {
-        #region Properties (9)
+        #region Fields (2)
+
+        private uint _appStatus;
+        private ProtocolStatus _status;
+
+        #endregion Fields (2)
+
+        #region Constructors (1)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Initializes a new instance of the <see cref="EndRequestRecordBuilder" /> class.
         /// </summary>
-        IRequestContext Context { get; }
+        public EndRequestRecordBuilder()
+            : base(type: RecordType.FCGI_END_REQUEST)
+        {
+            this.AppStatus = 0;
+            this.Status = ProtocolStatus.FCGI_REQUEST_COMPLETE;
+        }
+
+        #endregion Constructors (1)
+
+        #region Methods (1)
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Updates the value of <see cref="EndRequestRecordBuilder.Content" />.
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        protected void UpdateContent()
+        {
+            using (var temp = new MemoryStream())
+            {
+                // appStatus
+                temp.Write(BitHelper.GetBytes(this.AppStatus), 0, 4);
+
+                // protocolStatus
+                temp.WriteByte((byte)this.Status);
+
+                // reserved
+                temp.Write(new byte[3], 0, 3);
+
+                base.Content = temp.ToArray();
+            }
+        }
+
+        #endregion Methods (1)
+
+        #region Properties (4)
 
         /// <summary>
-        /// Checks if the value of <see cref="IHttpRequest.Method" /> is part of <see cref="IHttpRequest.SupportedMethods" />
+        /// Gets or sets the value for the application status.
         /// </summary>
-        bool IsMethodAllowed { get; }
+        public uint AppStatus
+        {
+            get { return this._appStatus; }
+
+            set
+            {
+                this._appStatus = value;
+
+                this.UpdateContent();
+            }
+        }
 
         /// <summary>
-        /// Gets the known HTTP method or <see langword="null" /> for unknown.
+        /// <see cref="RecordBuilder.Content" />
         /// </summary>
-        HttpMethod? KnownMethod { get; }
+        public override byte[] Content
+        {
+            get { return base.Content; }
+
+            set { throw new NotSupportedException(); }
+        }
 
         /// <summary>
-        /// Gets the uppercase name of the HTTP method.
+        /// Gets or sets the status.
         /// </summary>
-        string Method { get; }
+        public ProtocolStatus Status
+        {
+            get { return this._status; }
+
+            set
+            {
+                this._status = value;
+
+                this.UpdateContent();
+            }
+        }
 
         /// <summary>
-        /// Gets the list of variables from the post request.
+        /// <see cref="RecordBuilder.Type" />
         /// </summary>
-        IDictionary<string, string> PostVars { get; }
+        public override RecordType Type
+        {
+            get { return base.Type; }
 
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> QueryVars { get; }
+            set { throw new NotSupportedException(); }
+        }
 
-        /// <summary>
-        /// Gets a list of supported methods. That list can be changed for the response.
-        /// </summary>
-        IList<string> SupportedMethods { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (9)
+        #endregion Properties (4)
     }
 }

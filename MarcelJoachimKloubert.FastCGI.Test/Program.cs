@@ -56,10 +56,10 @@ namespace MarcelJoachimKloubert.FastCGI.Test
                     };
 
                 var settings = new FastCGISettings()
-                {
-                    Handler = handler,
-                    Port = 9002,
-                };
+                    {
+                        Handler = handler,
+                        Port = 9002,
+                    };
 
                 using (var server = new FastCGIServer(settings))
                 {

@@ -27,63 +27,31 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-using System;
-using System.Collections.Generic;
-
-namespace MarcelJoachimKloubert.FastCGI.Http
+namespace MarcelJoachimKloubert.FastCGI.Records
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// List of protocol stati.
     /// </summary>
-    public interface IHttpRequest
+    public enum ProtocolStatus : byte
     {
-        #region Properties (9)
+        /// <summary>
+        /// Normal end of request.
+        /// </summary>
+        FCGI_REQUEST_COMPLETE = 0,
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Maximum connections reached.
         /// </summary>
-        IRequestContext Context { get; }
+        FCGI_CANT_MPX_CONN = 1,
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Server is overloaded.
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        FCGI_OVERLOADED = 2,
 
         /// <summary>
-        /// Checks if the value of <see cref="IHttpRequest.Method" /> is part of <see cref="IHttpRequest.SupportedMethods" />
+        /// Unknown.
         /// </summary>
-        bool IsMethodAllowed { get; }
-
-        /// <summary>
-        /// Gets the known HTTP method or <see langword="null" /> for unknown.
-        /// </summary>
-        HttpMethod? KnownMethod { get; }
-
-        /// <summary>
-        /// Gets the uppercase name of the HTTP method.
-        /// </summary>
-        string Method { get; }
-
-        /// <summary>
-        /// Gets the list of variables from the post request.
-        /// </summary>
-        IDictionary<string, string> PostVars { get; }
-
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> QueryVars { get; }
-
-        /// <summary>
-        /// Gets a list of supported methods. That list can be changed for the response.
-        /// </summary>
-        IList<string> SupportedMethods { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (9)
+        FCGI_UNKNOWN_ROLE = 3,
     }
 }

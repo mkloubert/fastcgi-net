@@ -29,6 +29,7 @@
 
 using MarcelJoachimKloubert.FastCGI.Helpers;
 using MarcelJoachimKloubert.FastCGI.Records;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -54,6 +55,12 @@ namespace MarcelJoachimKloubert.FastCGI
             }
 
             #endregion Constructors (1)
+
+            #region Events (1)
+
+            internal event EventHandler Ended;
+
+            #endregion Events (1)
 
             #region Properties (6)
 
@@ -142,7 +149,7 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Properties (6)
 
-            #region Methods (4)
+            #region Methods (6)
 
             public Stream CreateInputStream(ref int? readBufferSize, ref int? writeBufferSize)
             {
@@ -154,18 +161,97 @@ namespace MarcelJoachimKloubert.FastCGI
                 return this.Handler.Server.CreateOutputStream(this, ref readBufferSize, ref writeBufferSize);
             }
 
-            public void End()
+            public byte[] GetBody()
             {
-                var builder = new RecordBuilder();
-                builder.RequestId = this.Handler.RequestId;
-                builder.Type = RecordType.FCGI_END_REQUEST;
+                int? readBufferSize = null;
+                using (var stream = this.GetBodyStream(ref readBufferSize))
+                {
+                    if (readBufferSize < 1)
+                    {
+                        readBufferSize = 10240;
+                    }
 
-                var recordData = builder.Build();
+                    return BitHelper.ToByteArray(stream, readBufferSize);
+                }
+            }
 
-                this.Handler.Stream
-                            .Write(recordData, 0, recordData.Length);
+            public Stream GetBodyStream(ref int? readBufferSize)
+            {
+                var stream = this.BodyStream;
+                if (stream == null)
+                {
+                    readBufferSize = null;
+                    return new MemoryStream();
+                }
 
-                //TODO close connection
+                int? writeBufferSize = null;
+                var result = this.CreateInputStream(ref readBufferSize, ref writeBufferSize);
+
+                readBufferSize = this.ReadBufferSize;
+
+                var bufferSize = readBufferSize;
+                if (bufferSize > writeBufferSize)
+                {
+                    bufferSize = writeBufferSize;
+                }
+
+                long? oldPosition = null;
+                try
+                {
+                    if (stream.CanSeek)
+                    {
+                        oldPosition = stream.Position;
+                        stream.Position = 0;
+                    }
+
+                    BitHelper.CopyTo(stream, result, bufferSize);
+                }
+                finally
+                {
+                    if (oldPosition.HasValue)
+                    {
+                        stream.Position = oldPosition.Value;
+                    }
+                }
+
+                if (result.CanSeek)
+                {
+                    result.Position = 0;
+                }
+
+                return result;
+            }
+
+            public bool End()
+            {
+                try
+                {
+                    var builder = new EndRequestRecordBuilder();
+                    builder.RequestId = this.Handler.RequestId;
+                    builder.Status = ProtocolStatus.FCGI_REQUEST_COMPLETE;
+
+                    var recordData = builder.Build();
+
+                    this.Handler.Stream
+                                .Write(recordData, 0, recordData.Length);
+
+                    try
+                    {
+                        this.Handler.Stream.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        this.Handler.Server.RaiseError(ex);
+                    }
+
+                    this.RaiseEventHandler(this.Ended);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    this.Handler.Server.RaiseError(ex);
+                    return false;
+                }
             }
 
             public IRequestContext Write(IEnumerable<byte> data)
@@ -192,7 +278,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 return this;
             }
 
-            #endregion Methods (4)
+            #endregion Methods (6)
         }
     }
 }

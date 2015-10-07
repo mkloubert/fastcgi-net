@@ -28,98 +28,181 @@
  **********************************************************************************************************************/
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace MarcelJoachimKloubert.FastCGI.Collections
 {
     /// <summary>
-    /// A dictionary that only supports read operations and throws <see cref="NotSupportedException" />
-    /// on write operations.
+    /// A basic dictionary that wraps another one.
     /// </summary>
     /// <typeparam name="TKey">Type of the keys.</typeparam>
     /// <typeparam name="TValue">Type of the values.</typeparam>
-    public class ReadOnlyDictionary<TKey, TValue> : DictionaryWrapperBase<TKey, TValue>
+    public abstract class DictionaryWrapperBase<TKey, TValue> : FastCGIObject, IDictionary<TKey, TValue>
     {
+        #region Fields (1)
+
+        /// <summary>
+        /// The inner dictionary.
+        /// </summary>
+        protected readonly IDictionary<TKey, TValue> _DICT;
+
+        #endregion Fields (1)
+
         #region Constructors (1)
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReadOnlyDictionary{TKey, TValue}" /> class.
+        /// Initializes a new instance of the <see cref="DictionaryWrapperBase{TKey, TValue}" /> class.
         /// </summary>
         /// <param name="dict">The dictionary to wrap.</param>
         /// <exception cref="ArgumentNullException">
         /// <paramref name="dict" /> is <see langword="null" />.
         /// </exception>
-        public ReadOnlyDictionary(IDictionary<TKey, TValue> dict)
-            : base(dict)
+        protected DictionaryWrapperBase(IDictionary<TKey, TValue> dict)
         {
+            if (dict == null)
+            {
+                throw new ArgumentNullException("dict");
+            }
+
+            this._DICT = dict;
         }
 
         #endregion Constructors (1)
 
-        #region Methods (5)
+        #region Methods (11)
 
         /// <summary>
-        /// <see cref="DictionaryWrapperBase{TKey, TValue}.Add(TKey, TValue)" />
+        /// <see cref="IDictionary{TKey, TValue}.Add(TKey, TValue)" />
         /// </summary>
-        public sealed override void Add(TKey key, TValue value)
+        public virtual void Add(TKey key, TValue value)
         {
-            throw new NotSupportedException();
+            this._DICT.Add(key, value);
         }
 
         /// <summary>
-        /// <see cref="DictionaryWrapperBase{TKey, TValue}.Add(KeyValuePair{TKey, TValue})" />
+        /// <see cref="ICollection{T}.Add(T)" />
         /// </summary>
-        public sealed override void Add(KeyValuePair<TKey, TValue> item)
+        public virtual void Add(KeyValuePair<TKey, TValue> item)
         {
-            throw new NotSupportedException();
+            this._DICT.Add(item);
         }
 
         /// <summary>
-        /// <see cref="DictionaryWrapperBase{TKey, TValue}.Clear()" />
+        /// <see cref="ICollection{T}.Clear()" />
         /// </summary>
-        public sealed override void Clear()
+        public virtual void Clear()
         {
-            throw new NotSupportedException();
+            this._DICT.Clear();
         }
 
         /// <summary>
-        /// <see cref="DictionaryWrapperBase{TKey, TValue}.Remove(TKey)" />
+        /// <see cref="ICollection{T}.Contains(T)" />
         /// </summary>
-        public sealed override bool Remove(TKey key)
+        public virtual bool Contains(KeyValuePair<TKey, TValue> item)
         {
-            throw new NotImplementedException();
+            return this._DICT.Contains(item);
         }
 
         /// <summary>
-        /// <see cref="DictionaryWrapperBase{TKey, TValue}.Remove(KeyValuePair{TKey, TValue})" />
+        /// <see cref="IDictionary{TKey, TValue}.ContainsKey(TKey)" />
         /// </summary>
-        public sealed override bool Remove(KeyValuePair<TKey, TValue> item)
+        public virtual bool ContainsKey(TKey key)
         {
-            throw new NotSupportedException();
-        }
-
-        #endregion Methods (5)
-
-        #region Properties (2)
-
-        /// <summary>
-        /// <see cref="DictionaryWrapperBase{TKey, TValue}.IsReadOnly" />
-        /// </summary>
-        public sealed override bool IsReadOnly
-        {
-            get { return true; }
+            return this._DICT.ContainsKey(key);
         }
 
         /// <summary>
-        /// <see cref="DictionaryWrapperBase{TKey, TValue}.this[TKey]" />
+        /// <see cref="ICollection{T}.CopyTo(T[], int)" />
         /// </summary>
-        public sealed override TValue this[TKey key]
+        public virtual void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            this._DICT.CopyTo(array, arrayIndex);
+        }
+
+        /// <summary>
+        /// <see cref="IEnumerable{T}.GetEnumerator()" />
+        /// </summary>
+        public virtual IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            return this._DICT.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+        /// <summary>
+        /// <see cref="IDictionary{TKey, TValue}.Remove(TKey)" />
+        /// </summary>
+        public virtual bool Remove(TKey key)
+        {
+            return this._DICT.Remove(key);
+        }
+
+        /// <summary>
+        /// <see cref="ICollection{T}.Remove(T)" />
+        /// </summary>
+        public virtual bool Remove(KeyValuePair<TKey, TValue> item)
+        {
+            return this._DICT.Remove(item);
+        }
+
+        /// <summary>
+        /// <see cref="IDictionary{TKey, TValue}.TryGetValue(TKey, out TValue)" />
+        /// </summary>
+        public virtual bool TryGetValue(TKey key, out TValue value)
+        {
+            return this._DICT.TryGetValue(key, out value);
+        }
+
+        #endregion Methods (11)
+
+        #region Properties (5)
+
+        /// <summary>
+        /// <see cref="ICollection{T}.Count" />
+        /// </summary>
+        public virtual int Count
+        {
+            get { return this._DICT.Count; }
+        }
+
+        /// <summary>
+        /// <see cref="IDictionary{TKey, TValue}.Keys" />
+        /// </summary>
+        public virtual ICollection<TKey> Keys
+        {
+            get { return this._DICT.Keys; }
+        }
+
+        /// <summary>
+        /// <see cref="ICollection{T}.IsReadOnly" />
+        /// </summary>
+        public virtual bool IsReadOnly
+        {
+            get { return this._DICT.IsReadOnly; }
+        }
+
+        /// <summary>
+        /// <see cref="IDictionary{TKey, TValue}.this[TKey]" />
+        /// </summary>
+        public virtual TValue this[TKey key]
         {
             get { return this._DICT[key]; }
 
-            set { throw new NotSupportedException(); }
+            set { this._DICT[key] = value; }
         }
 
-        #endregion Properties (2)
+        /// <summary>
+        /// <see cref="IDictionary{TKey, TValue}.Values" />
+        /// </summary>
+        public virtual ICollection<TValue> Values
+        {
+            get { return this._DICT.Values; }
+        }
+
+        #endregion Properties (5)
     }
 }

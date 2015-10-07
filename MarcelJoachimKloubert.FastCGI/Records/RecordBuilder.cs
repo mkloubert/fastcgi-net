@@ -34,14 +34,15 @@ using System.IO;
 namespace MarcelJoachimKloubert.FastCGI.Records
 {
     /// <summary>
-    /// Builds FastCGI recors.
+    /// Builds FastCGI records.
     /// </summary>
     public class RecordBuilder : FastCGIObject
     {
-        #region Fields (5)
+        #region Fields (6)
 
         private byte[] _content;
         private byte[] _padding;
+        private RecordType _type;
 
         /// <summary>
         /// Stores the request ID.
@@ -58,20 +59,28 @@ namespace MarcelJoachimKloubert.FastCGI.Records
         /// </summary>
         public byte Version = 1;
 
+        #endregion Fields (6)
+
+        #region Constructors (1)
+
         /// <summary>
-        /// Stores the record type.
+        /// Initializes a new instance of the <see cref="RecordBuilder" /> class.
         /// </summary>
-        public RecordType Type = RecordType.FCGI_STDOUT;
+        /// <param name="type">The initial value for the <see cref="RecordBuilder.Type" /> property.</param>
+        public RecordBuilder(RecordType type = RecordType.FCGI_STDOUT)
+        {
+            this._type = type;
+        }
 
-        #endregion Fields (5)
+        #endregion Constructors (1)
 
-        #region Properties (2)
+        #region Properties (3)
 
         /// <summary>
         /// Gets or sets the content.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">New value is too big (max. 65535 bytes).</exception>
-        public byte[] Content
+        public virtual byte[] Content
         {
             get { return this._content; }
 
@@ -110,7 +119,17 @@ namespace MarcelJoachimKloubert.FastCGI.Records
             }
         }
 
-        #endregion Properties (2)
+        /// <summary>
+        /// Stores the record type.
+        /// </summary>
+        public virtual RecordType Type
+        {
+            get { return this._type; }
+
+            set { this._type = value; }
+        }
+
+        #endregion Properties (3)
 
         #region Method (1)
 
@@ -125,17 +144,28 @@ namespace MarcelJoachimKloubert.FastCGI.Records
                 var content = BitHelper.AsArray(this.Content, true);
                 var padding = BitHelper.AsArray(this.Padding, true);
 
+                // version
                 temp.WriteByte(this.Version);
+
+                // type
                 temp.WriteByte((byte)this.Type);
 
+                // requestId
                 temp.Write(BitHelper.GetBytes(this.RequestId), 0, 2);
 
+                // contentLength
                 temp.Write(BitHelper.GetBytes((ushort)content.Length), 0, 2);
+
+                // paddingLength
                 temp.WriteByte((byte)padding.Length);
 
+                // reserved
                 temp.WriteByte(this.Reserved);
 
+                // contentData
                 temp.Write(content, 0, content.Length);
+
+                // paddingData
                 temp.Write(padding, 0, padding.Length);
 
                 return temp.ToArray();

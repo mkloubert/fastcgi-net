@@ -39,7 +39,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
     /// </summary>
     public interface IHttpResponse
     {
-        #region Properties (12)
+        #region Properties (15)
 
         /// <summary>
         /// Gets or sets the response code. <see langword="null" /> indicates to use the default.
@@ -70,6 +70,21 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// Gets the list of response headers.
         /// </summary>
         IDictionary<string, string> Headers { get; }
+
+        /// <summary>
+        /// Gets or sets if operation is allowed (<see langword="true" />) or not (<see langword="false" />).
+        /// </summary>
+        bool IsAllowed { get; set; }
+
+        /// <summary>
+        /// Gets or sets if the requesting client is authorized (<see langword="true" />) or not (<see langword="false" />).
+        /// </summary>
+        bool IsAuthorized { get; set; }
+
+        /// <summary>
+        /// Gets or sets if operation is forbidden (<see langword="true" />) or not (<see langword="false" />).
+        /// </summary>
+        bool IsForbidden { get; set; }
 
         /// <summary>
         /// Gets or sets to return a HTTP 404 error (<see langword="true" />) or not (<see langword="false" />).
@@ -108,7 +123,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// </summary>
         int? WriteBufferSize { get; }
 
-        #endregion Properties (12)
+        #endregion Properties (15)
 
         #region Methods (10)
 

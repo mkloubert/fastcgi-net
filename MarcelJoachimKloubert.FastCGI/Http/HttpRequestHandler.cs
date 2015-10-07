@@ -41,7 +41,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
     /// </summary>
     public partial class HttpRequestHandler : FastCGIObject, IRequestHandler
     {
-        #region Fields (2)
+        #region Fields (4)
 
         /// <summary>
         /// Stores the header name for the content length.
@@ -53,14 +53,29 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// </summary>
         public const string HEADER_CONTENT_TYPE = "Content-type";
 
-        #endregion Fields (2)
+        /// <summary>
+        /// Extra header: powered by
+        /// </summary>
+        public const string HEADER_X_POWERED_BY = "X-Powered-By";
 
-        #region Events (6)
+        /// <summary>
+        /// The header name for the status.
+        /// </summary>
+        public const string HEADER_STATUS = "Status";
+
+        #endregion Fields (4)
+
+        #region Events (11)
 
         /// <summary>
         /// Is invoked AFTER a request has been handled (or not).
         /// </summary>
         public event EventHandler<HttpAfterRequestEventArgs> AfterRequest;
+
+        /// <summary>
+        /// Is raised for authorize credentials.
+        /// </summary>
+        public event EventHandler<HttpAuthorizeEventArgs> Authorize;
 
         /// <summary>
         /// Is invoked BEFORE a request is handled.
@@ -71,6 +86,16 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// Is raised if a request failed (500).
         /// </summary>
         public event EventHandler<HttpRequestServerErrorEventArgs> Error;
+
+        /// <summary>
+        /// Is raised if a request is forbidden (403).
+        /// </summary>
+        public event EventHandler<HttpRequestClientErrorEventArgs> Forbidden;
+
+        /// <summary>
+        /// Is raised if a method is NOT allowed (405).
+        /// </summary>
+        public event EventHandler<HttpRequestClientErrorEventArgs> NotAllowed;
 
         /// <summary>
         /// Is raised if a resource was not found (404).
@@ -87,9 +112,48 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// </summary>
         public event EventHandler<HttpRequestEventArgs> Request;
 
-        #endregion Events (6)
+        /// <summary>
+        /// Is raised if a request is unauthorized (401).
+        /// </summary>
+        public event EventHandler<HttpRequestClientErrorEventArgs> Unauthorized;
+
+        #endregion Events (11)
 
         #region Methods (9)
+
+        /// <summary>
+        /// Checks credentials.
+        /// </summary>
+        /// <param name="request">The underlying request.</param>
+        /// <returns>Credentials are valid (<see langword="true" />) or not (<see langword="false" />).</returns>
+        protected virtual bool CheckCredentials(IHttpRequest request)
+        {
+            string username = null;
+            string password = null;
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                username = null;
+            }
+            else
+            {
+                username = username.Trim();
+            }
+
+            if (string.IsNullOrEmpty(password))
+            {
+                password = null;
+            }
+
+            var e = new HttpAuthorizeEventArgs(username, password);
+
+            if (!this.RaiseEventHandler(this.Authorize, e))
+            {
+                e.IsAuthorized = true;
+            }
+
+            return e.IsAuthorized;
+        }
 
         /// <summary>
         /// Creates a request context.
@@ -98,7 +162,18 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// <returns>The created instance.</returns>
         protected virtual IHttpRequest CreateRequest(IRequestContext context)
         {
-            return new HttpRequest(context);
+            var result = new HttpRequest(context);
+
+            // allowed methods
+            result.SupportedMethods.Add("GET");
+            result.SupportedMethods.Add("POST");
+            result.SupportedMethods.Add("OPTIONS");
+            result.SupportedMethods.Add("HEAD");
+#if DEBUG
+            result.SupportedMethods.Add("TRACE");
+#endif
+
+            return result;
         }
 
         /// <summary>
@@ -191,67 +266,155 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             var request = this.CreateRequest(context);
             var response = this.CreateResponse(context);
 
+            response.IsAllowed = request.IsMethodAllowed;
+
             Exception error = null;
             Stream outputStream = null;
             bool? skipped = null;
 
+            Func<bool> handleForbidden = () =>
+                {
+                    response.Code = 403;
+                    response.Status = "Forbidden";
+
+                    var e = new HttpRequestClientErrorEventArgs(request, response);
+                    e.Handled = true;
+
+                    if (!this.RaiseEventHandler(this.Forbidden, e))
+                    {
+                        e.Handled = false;
+                    }
+
+                    return e.Handled;
+                };
+
+            Func<bool> handleNotAllowed = () =>
+                {
+                    response.Code = 405;
+                    response.Status = "Method Not Allowed";
+
+                    var e = new HttpRequestClientErrorEventArgs(request, response);
+                    e.Handled = true;
+
+                    if (!this.RaiseEventHandler(this.NotAllowed, e))
+                    {
+                        e.Handled = false;
+                    }
+
+                    return e.Handled;
+                };
+
+            Func<bool> handleNotFound = () =>
+                {
+                    response.Code = 404;
+                    response.Status = "Not Found";
+
+                    var e = new HttpRequestClientErrorEventArgs(request, response);
+                    e.Handled = true;
+
+                    if (!this.RaiseEventHandler(this.NotFound, e))
+                    {
+                        e.Handled = false;
+                    }
+
+                    if (!e.Handled)
+                    {
+                        outputStream = null;
+                    }
+
+                    return e.Handled;
+                };
+
+            Func<bool> handleUnauthorized = () =>
+                {
+                    response.Code = 401;
+                    response.Status = "Unauthorized";
+
+                    var e = new HttpRequestClientErrorEventArgs(request, response);
+                    e.Handled = true;
+
+                    if (!this.RaiseEventHandler(this.Unauthorized, e))
+                    {
+                        e.Handled = false;
+                    }
+
+                    return e.Handled;
+                };
+
             try
             {
-                var bre = new HttpBeforeRequestEventArgs(request, response);
-                bre.Skip = false;
-
-                this.RaiseEventHandler(this.BeforeRequest, bre);
-
-                skipped = bre.Skip;
-
-                if (false == skipped)
+                if (request.IsMethodAllowed)
                 {
-                    bool notImplemented;
-                    if (this.RaiseRequest(request, response))
+                    response.IsAuthorized = this.CheckCredentials(request);
+
+                    if (response.IsAuthorized)
                     {
-                        outputStream = response.Stream;
+                        var bre = new HttpBeforeRequestEventArgs(request, response);
+                        bre.Skip = false;
 
-                        if (response.NotFound)
+                        this.RaiseEventHandler(this.BeforeRequest, bre);
+
+                        skipped = bre.Skip;
+
+                        if (!response.IsAllowed)
                         {
-                            var e = new HttpRequestClientErrorEventArgs(request, response);
-                            e.Handled = true;
-
-                            if (!this.RaiseEventHandler(this.NotFound, e))
+                            handleNotAllowed();
+                        }
+                        else if (!response.IsAuthorized)
+                        {
+                            handleUnauthorized();
+                        }
+                        else if (response.IsForbidden)
+                        {
+                            handleForbidden();
+                        }
+                        else if (false == skipped)
+                        {
+                            bool notImplemented;
+                            if (this.RaiseRequest(request, response))
                             {
-                                e.Handled = false;
+                                outputStream = response.Stream;
+
+                                if (response.NotFound)
+                                {
+                                    handleNotFound();
+                                }
+
+                                notImplemented = response.NotImplemented;
+                            }
+                            else
+                            {
+                                notImplemented = true;
                             }
 
-                            if (!e.Handled)
+                            if (notImplemented)
                             {
-                                outputStream = null;
+                                response.Code = 501;
+                                response.Status = "Not Implemented";
+
+                                var e = new HttpRequestServerErrorEventArgs(request, response);
+                                e.Handled = true;
+
+                                if (!this.RaiseEventHandler(this.NotImplemented, e))
+                                {
+                                    e.Handled = false;
+                                }
+
+                                if (!e.Handled)
+                                {
+                                    outputStream = null;
+                                }
                             }
                         }
-
-                        notImplemented = response.NotImplemented;
                     }
                     else
                     {
-                        notImplemented = true;
+                        handleUnauthorized();
                     }
-
-                    if (notImplemented)
-                    {
-                        response.Code = 501;
-                        response.Status = "Not Implemented";
-
-                        var e = new HttpRequestServerErrorEventArgs(request, response);
-                        e.Handled = true;
-
-                        if (!this.RaiseEventHandler(this.NotImplemented, e))
-                        {
-                            e.Handled = false;
-                        }
-
-                        if (!e.Handled)
-                        {
-                            outputStream = null;
-                        }
-                    }
+                }
+                else
+                {
+                    handleNotAllowed();
                 }
             }
             catch (Exception ex)
@@ -290,133 +453,211 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             var encoder = this.GetResponseEncoder(request, response) ?? Encoding.ASCII;
             var newLine = StringHelper.AsString(this.GetNewLine(request, response)) ?? "\r\n";
 
-            var contentLength = response.ContentLength;
-
-            var status = (response.Status ?? string.Empty).Trim();
-            if (status != "")
+            var statusDescription = (response.Status ?? string.Empty).Trim();
+            if (statusDescription != "")
             {
-                status = " " + status;
+                statusDescription = " " + statusDescription;
             }
 
-            context.Write(encoder.GetBytes(string.Format("HTTP/{0} {1}{2}" + newLine,
-                                                         response.Version ?? new Version(1, 0),
-                                                         response.Code ?? 200, status)));
+            var code = response.Code;
+            var contentLength = response.ContentLength;
+            var headers = response.Headers;
+            var version = response.Version;
+            int? bufferReadSize = null;
+            var updateHeaders = true;
 
-            if (response.Headers != null)
-            {
-                foreach (var entry in response.Headers)
+            Action<string, object> sendHeader = (headerName, headerValue) =>
                 {
-                    var headerName = (entry.Key ?? string.Empty).Replace("\t", "    ")
-                                                                .Replace(" ", "-")
-                                                                .Trim();
-                    if (headerName == "")
-                    {
-                        continue;
-                    }
-
-                    var headerValue = entry.Value;
-
-                    if (headerName.ToLower() == HEADER_CONTENT_TYPE.ToLower())
-                    {
-                        var enc = response.Encoding;
-
-                        headerValue = (headerValue ?? string.Empty).ToLower().Trim();
-                        if (headerValue == "")
-                        {
-                            headerValue = StringHelper.AsString(this.GetDefaultContentType(request, response));
-                        }
-
-                        if (enc != null)
-                        {
-                            // append charset
-                            headerValue += "; charset=" + enc.WebName;
-                        }
-                    }
-
                     context.Write(encoder.GetBytes(string.Format("{0}: {1}{2}",
                                                                  headerName, headerValue,
                                                                  newLine)));
-                }
-            }
+                };
 
-            // content length
-            {
-                if (!contentLength.HasValue)
+            Action unsetOutputStream = () =>
                 {
-                    if (outputStream != null)
+                    outputStream = null;
+
+                    //TODO dispose
+                };
+
+            Action sendOutputStream = () =>
+                {
+                    if (outputStream == null)
                     {
-                        try
+                        return;
+                    }
+
+                    long? oldPosition = null;
+
+                    try
+                    {
+                        if (outputStream.CanSeek)
                         {
-                            if (outputStream.CanSeek)
+                            oldPosition = outputStream.Position;
+                            outputStream.Position = 0;
+                        }
+
+                        var buffer = new byte[response.ReadBufferSize ?? 10240];
+
+                        int bytesRead;
+                        while ((bytesRead = outputStream.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            var dataToWrite = buffer;
+                            if (bytesRead != buffer.Length)
                             {
-                                contentLength = outputStream.Length;
+                                dataToWrite = CollectionHelper.AsArray(buffer.Take(bytesRead));
+                            }
+
+                            response.Context.Write(dataToWrite);
+                        }
+                    }
+                    finally
+                    {
+                        if (oldPosition.HasValue)
+                        {
+                            outputStream.Position = oldPosition.Value;
+                        }
+                    }
+                };
+
+            Action sendResponse = () =>
+                {
+                    try
+                    {
+                        var forcedHeaders = new Dictionary<string, string>(new CaseInsensitiveComparer());
+                        forcedHeaders.Add(HEADER_X_POWERED_BY, "fastcgi-net");
+
+                        var status = string.Format("{0}{1}",
+                                                   code ?? 200, statusDescription);
+
+                        forcedHeaders.Add(HEADER_STATUS, status);
+
+                        context.Write(encoder.GetBytes(string.Format("HTTP/{0} {1}" + newLine,
+                                                                     version ?? new Version(1, 0),
+                                                                     status)));
+
+                        // custom headers
+                        if (headers != null)
+                        {
+                            foreach (var entry in headers)
+                            {
+                                if (forcedHeaders.ContainsKey(HEADER_STATUS))
+                                {
+                                    // Status:
+                                    continue;
+                                }
+
+                                var headerName = (entry.Key ?? string.Empty).Replace("\t", "    ")
+                                                                            .Replace(" ", "-")
+                                                                            .Trim();
+                                if (headerName == "")
+                                {
+                                    continue;
+                                }
+
+                                var headerValue = entry.Value;
+
+                                if (headerName.ToLower() == HEADER_CONTENT_TYPE.ToLower())
+                                {
+                                    var enc = response.Encoding;
+
+                                    headerValue = (headerValue ?? string.Empty).ToLower().Trim();
+                                    if (headerValue == "")
+                                    {
+                                        headerValue = StringHelper.AsString(this.GetDefaultContentType(request, response));
+                                    }
+
+                                    if (enc != null)
+                                    {
+                                        // append charset
+                                        headerValue += "; charset=" + enc.WebName;
+                                    }
+                                }
+
+                                sendHeader(headerName, headerValue);
                             }
                         }
-                        catch
+
+                        // forced headers
+                        foreach (var entry in forcedHeaders)
                         {
-                            // ignore errors
+                            sendHeader(entry.Key, entry.Value);
                         }
+
+                        // update headers
+                        if (updateHeaders)
+                        {
+                            // content length
+                            {
+                                if (!contentLength.HasValue)
+                                {
+                                    if (outputStream != null)
+                                    {
+                                        try
+                                        {
+                                            if (outputStream.CanSeek)
+                                            {
+                                                contentLength = outputStream.Length;
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            // ignore errors
+                                        }
+                                    }
+                                }
+
+                                if (contentLength.HasValue)
+                                {
+                                    sendHeader(HEADER_CONTENT_LENGTH, contentLength);
+                                }
+                            }
+                        }
+
+                        // separator between header and body
+                        context.Write(encoder.GetBytes(newLine));
+
+                        sendOutputStream();
                     }
-                }
-
-                if (contentLength.HasValue)
-                {
-                    context.Write(encoder.GetBytes(string.Format("{0}: {1}{2}",
-                                                                 HEADER_CONTENT_LENGTH, contentLength,
-                                                                 newLine)));
-                }
-            }
-
-            // separator between header and body
-            context.Write(encoder.GetBytes(newLine));
-
-            if (outputStream != null)
-            {
-                this.OutputStream(outputStream, request, response);
-            }
-
-            context.End();
-        }
-
-        /// <summary>
-        /// Outputs a stream.
-        /// </summary>
-        /// <param name="stream">The stream to output.</param>
-        /// <param name="request">The request context.</param>
-        /// <param name="response">The response context.</param>
-        protected virtual void OutputStream(Stream stream, IHttpRequest request, IHttpResponse response)
-        {
-            long? oldPosition = null;
-
-            try
-            {
-                if (stream.CanSeek)
-                {
-                    oldPosition = stream.Position;
-                    stream.Position = 0;
-                }
-
-                var buffer = new byte[response.ReadBufferSize ?? 10240];
-
-                int bytesRead;
-                while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    var dataToWrite = buffer;
-                    if (bytesRead != buffer.Length)
+                    finally
                     {
-                        dataToWrite = CollectionHelper.AsArray(buffer.Take(bytesRead));
+                        context.End();
                     }
+                };
 
-                    response.Context.Write(dataToWrite);
-                }
-            }
-            finally
+            if (request.IsMethodAllowed)
             {
-                if (oldPosition.HasValue)
+                switch (request.KnownMethod)
                 {
-                    stream.Position = oldPosition.Value;
+                    case HttpMethod.HEAD:
+                        unsetOutputStream();
+                        break;
+
+                    case HttpMethod.OPTIONS:
+                        code = 200;
+
+                        var supportedMethods = request.SupportedMethods ?? new List<string>();
+
+                        headers = new Dictionary<string, string>();
+                        headers.Add("Allow",
+                                    string.Join(",", supportedMethods.Select(x => (x ?? string.Empty).ToUpper().Trim())
+                                                                     .Where(x => x != string.Empty)
+                                                                     .Distinct()));
+
+                        unsetOutputStream();
+                        break;
+
+                    case HttpMethod.TRACE:
+                        unsetOutputStream();
+
+                        headers = request.Headers;
+                        outputStream = context.GetBodyStream(ref bufferReadSize);
+                        updateHeaders = false;
+                        break;
                 }
             }
+
+            sendResponse();
         }
 
         /// <summary>

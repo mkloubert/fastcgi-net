@@ -81,7 +81,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
 
             #endregion Constructors (1)
 
-            #region Properties (13)
+            #region Properties (16)
 
             /// <summary>
             /// Gets or sets the content type.
@@ -139,6 +139,21 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             public IDictionary<string, string> Headers { get; protected set; }
 
             /// <summary>
+            /// <see cref="IHttpResponse.IsAllowed" />
+            /// </summary>
+            public bool IsAllowed { get; set; }
+
+            /// <summary>
+            /// <see cref="IHttpResponse.IsAllowed" />
+            /// </summary>
+            public bool IsAuthorized { get; set; }
+
+            /// <summary>
+            /// <see cref="IHttpResponse.IsAllowed" />
+            /// </summary>
+            public bool IsForbidden { get; set; }
+
+            /// <summary>
             /// <see cref="IHttpResponse.NotFound" />
             /// </summary>
             public bool NotFound { get; set; }
@@ -173,7 +188,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             /// </summary>
             public int? WriteBufferSize { get; set; }
 
-            #endregion Properties (13)
+            #endregion Properties (16)
 
             #region Methods (12)
 

@@ -92,11 +92,13 @@ namespace MarcelJoachimKloubert.FastCGI
                 {
                     this._CONTEXT.WriteBufferSize = 10240;
                 }
+
+                this._CONTEXT.Ended += this._CONTEXT_Ended;
             }
 
             #endregion Constructors (1)
 
-            #region Properties (5)
+            #region Properties (6)
 
             /// <summary>
             /// Gets the base record.
@@ -114,6 +116,15 @@ namespace MarcelJoachimKloubert.FastCGI
             {
                 get;
                 private set;
+            }
+
+            /// <summary>
+            /// Gets if the request has been ended (<see langword="true" />) or not (<see langword="false" />).
+            /// </summary>
+            public bool HasEnded
+            {
+                get;
+                protected set;
             }
 
             /// <summary>
@@ -140,15 +151,48 @@ namespace MarcelJoachimKloubert.FastCGI
                 get { return this.Handler.Stream; }
             }
 
-            #endregion Properties (5)
+            #endregion Properties (6)
 
-            #region Methods (5)
+            #region Methods (7)
+
+            private void _CONTEXT_Ended(object sender, EventArgs e)
+            {
+                this.HasEnded = true;
+            }
+
+            /// <summary>
+            /// Ends the request.
+            /// </summary>
+            /// <returns>Operation was successfull (<see langword="true" />) or not (<see langword="false" />).</returns>
+            public bool End()
+            {
+                if (this.HasEnded)
+                {
+                    return true;
+                }
+
+                return this.HasEnded = this._CONTEXT.End();
+            }
 
             /// <summary>
             /// handle next steps.
             /// </summary>
             public void HandleNext()
             {
+                if (this.HasEnded)
+                {
+                    try
+                    {
+                        this.Stream.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        this.Server.RaiseError(ex);
+                    }
+
+                    return;
+                }
+
                 if (this.Stream.DataAvailable)
                 {
                     foreach (var request in UnknownRecord.FromStream(this.Stream))
@@ -178,6 +222,12 @@ namespace MarcelJoachimKloubert.FastCGI
 
                 try
                 {
+                    if (request.RequestId != this.BaseRecord.RequestId)
+                    {
+                        this.End();
+                        return false;
+                    }
+
                     if (request is ParameterRecord)
                     {
                         this.HandleParameters(request as ParameterRecord);
@@ -260,7 +310,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 return this.Server.RaiseError(ex, rethrow);
             }
 
-            #endregion Methods (5)
+            #endregion Methods (7)
         }
     }
 }

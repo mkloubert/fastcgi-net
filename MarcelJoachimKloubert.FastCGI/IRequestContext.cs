@@ -76,9 +76,22 @@ namespace MarcelJoachimKloubert.FastCGI
         Stream CreateOutputStream(ref int? readBufferSize, ref int? writeBufferSize);
 
         /// <summary>
+        /// Returns the whole body content.
+        /// </summary>
+        /// <returns>The body content.</returns>
+        byte[] GetBody();
+
+        /// <summary>
+        /// Gets a new stream that can be used to access the body data.
+        /// </summary>
+        /// <returns>The created stream.</returns>
+        Stream GetBodyStream(ref int? readBufferSize);
+
+        /// <summary>
         /// Ends the requests.
         /// </summary>
-        void End();
+        /// <returns>Operation was successfull (<see langword="true" />) or not (<see langword="false" />).</returns>
+        bool End();
 
         /// <summary>
         /// Writes data to the client.

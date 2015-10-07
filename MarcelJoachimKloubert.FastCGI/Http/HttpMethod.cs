@@ -27,63 +27,51 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-using System;
-using System.Collections.Generic;
-
 namespace MarcelJoachimKloubert.FastCGI.Http
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// List of known HTTP methods.
     /// </summary>
-    public interface IHttpRequest
+    public enum HttpMethod
     {
-        #region Properties (9)
+        /// <summary>
+        /// GET
+        /// </summary>
+        GET,
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// POST
         /// </summary>
-        IRequestContext Context { get; }
+        POST,
 
         /// <summary>
-        /// Gets the list of headers.
+        /// HEAD
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        HEAD,
 
         /// <summary>
-        /// Checks if the value of <see cref="IHttpRequest.Method" /> is part of <see cref="IHttpRequest.SupportedMethods" />
+        /// PUT
         /// </summary>
-        bool IsMethodAllowed { get; }
+        PUT,
 
         /// <summary>
-        /// Gets the known HTTP method or <see langword="null" /> for unknown.
+        /// DELETE
         /// </summary>
-        HttpMethod? KnownMethod { get; }
+        DELETE,
 
         /// <summary>
-        /// Gets the uppercase name of the HTTP method.
+        /// TRACE
         /// </summary>
-        string Method { get; }
+        TRACE,
 
         /// <summary>
-        /// Gets the list of variables from the post request.
+        /// OPTIONS
         /// </summary>
-        IDictionary<string, string> PostVars { get; }
+        OPTIONS,
 
         /// <summary>
-        /// Gets the list of variables from the query string.
+        /// CONNECT
         /// </summary>
-        IDictionary<string, string> QueryVars { get; }
-
-        /// <summary>
-        /// Gets a list of supported methods. That list can be changed for the response.
-        /// </summary>
-        IList<string> SupportedMethods { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (9)
+        CONNECT,
     }
 }
