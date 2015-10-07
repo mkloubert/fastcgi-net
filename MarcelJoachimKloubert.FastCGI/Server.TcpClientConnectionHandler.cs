@@ -29,7 +29,6 @@
 
 using MarcelJoachimKloubert.FastCGI.Records;
 using System;
-using System.IO;
 using System.Net.Sockets;
 
 namespace MarcelJoachimKloubert.FastCGI
@@ -138,14 +137,13 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Properties (6)
 
-            #region Methods (7)
+            #region Methods (6)
 
             /// <summary>
             /// Begins a request.
             /// </summary>
-            /// <param name="stream">The stream.</param>
             /// <param name="record">The record.</param>
-            protected void BeginRequest(Stream stream, BeginRequestRecord record)
+            public void BeginRequest(BeginRequestRecord record)
             {
                 this.CloseConnection = record.CloseConnection ?? true;
 
@@ -166,25 +164,15 @@ namespace MarcelJoachimKloubert.FastCGI
             /// </summary>
             public void HandleNext()
             {
-                this.HandleRequests(this.Stream);
-            }
-
-            /// <summary>
-            /// Handles requests.
-            /// </summary>
-            /// <param name="stream">The stream with the data.</param>
-            protected void HandleRequests(Stream stream)
-            {
-                foreach (var request in UnknownRecord.FromStream(stream))
+                foreach (var request in UnknownRecord.FromStream(this.Stream))
                 {
-                    this.InvokeForRequest(stream, request, true);
+                    this.InvokeForRequest(request, true);
                 }
             }
 
             /// <summary>
             /// Invokes an action for a request.
             /// </summary>
-            /// <param name="stream">The stream with the data.</param>
             /// <param name="request">The request.</param>
             /// <param name="throwException">
             /// Rethrow exception (<see langword="true" />) or not (<see langword="false" />).
@@ -193,7 +181,7 @@ namespace MarcelJoachimKloubert.FastCGI
             /// Operation was successfull (<see langword="true" />) or not <see langword="false" />.
             /// <see langword="null" /> indicates that <paramref name="request" /> is <see langword="null" />.
             /// </returns>
-            protected bool? InvokeForRequest(Stream stream, UnknownRecord request, bool throwException = false)
+            protected bool? InvokeForRequest(UnknownRecord request, bool throwException = false)
             {
                 if (request == null)
                 {
@@ -204,7 +192,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 {
                     if (request is BeginRequestRecord)
                     {
-                        this.BeginRequest(stream, request as BeginRequestRecord);
+                        this.BeginRequest(request as BeginRequestRecord);
                         return true;
                     }
                 }
@@ -243,7 +231,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 return this.Server.RaiseError(ex, rethrow);
             }
 
-            #endregion Methods (7)
+            #endregion Methods (6)
         }
     }
 }

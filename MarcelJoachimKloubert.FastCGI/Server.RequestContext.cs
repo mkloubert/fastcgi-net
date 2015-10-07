@@ -235,21 +235,6 @@ namespace MarcelJoachimKloubert.FastCGI
                     this.Handler.Stream
                                 .Write(recordData, 0, recordData.Length);
 
-                    try
-                    {
-                        using (this.Handler.Stream)
-                        {
-                            this.Handler.Stream.Close();
-
-                            this.Handler.Server
-                                        .RaiseClientDisconnected(this.Handler.Handler.RemoteClient);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        this.Handler.Server.RaiseError(ex);
-                    }
-
                     this.RaiseEventHandler(this.Ended);
                     return true;
                 }

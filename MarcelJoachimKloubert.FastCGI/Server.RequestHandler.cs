@@ -158,6 +158,32 @@ namespace MarcelJoachimKloubert.FastCGI
             private void _CONTEXT_Ended(object sender, EventArgs e)
             {
                 this.HasEnded = true;
+
+                if (this.Handler.CloseConnection)
+                {
+                    try
+                    {
+                        using (this.Stream)
+                        {
+                            this.Stream.Close();
+
+                            this.Server
+                                .RaiseClientDisconnected(this.Handler.RemoteClient);
+                        }
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // ignore
+                    }
+                    catch (Exception ex)
+                    {
+                        this.Server.RaiseError(ex);
+                    }
+                }
+                else
+                {
+                    this.HandleNext();
+                }
             }
 
             /// <summary>
@@ -179,26 +205,9 @@ namespace MarcelJoachimKloubert.FastCGI
             /// </summary>
             public void HandleNext()
             {
-                if (this.HasEnded)
+                foreach (var request in UnknownRecord.FromStream(this.Stream))
                 {
-                    try
-                    {
-                        this.Stream.Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        this.Server.RaiseError(ex);
-                    }
-
-                    return;
-                }
-
-                if (this.Stream.DataAvailable)
-                {
-                    foreach (var request in UnknownRecord.FromStream(this.Stream))
-                    {
-                        this.InvokeForRequest(request);
-                    }
+                    this.InvokeForRequest(request);
                 }
             }
 
@@ -222,22 +231,34 @@ namespace MarcelJoachimKloubert.FastCGI
 
                 try
                 {
-                    if (request.RequestId != this.BaseRecord.RequestId)
+                    if (request is BeginRequestRecord)
+                    {
+                        this.Handler.BeginRequest(request as BeginRequestRecord);
+                        return true;
+                    }
+
+                    if (request.RequestId == this.BaseRecord.RequestId)
+                    {
+                        if (this.HasEnded)
+                        {
+                            return false;
+                        }
+
+                        if (request is ParameterRecord)
+                        {
+                            this.HandleParameters(request as ParameterRecord);
+                            return true;
+                        }
+
+                        if (request is InputRecord)
+                        {
+                            this.HandleInputData(request as InputRecord);
+                            return true;
+                        }
+                    }
+                    else
                     {
                         this.End();
-                        return false;
-                    }
-
-                    if (request is ParameterRecord)
-                    {
-                        this.HandleParameters(request as ParameterRecord);
-                        return true;
-                    }
-
-                    if (request is InputRecord)
-                    {
-                        this.HandleInputData(request as InputRecord);
-                        return true;
                     }
                 }
                 catch (Exception ex)
