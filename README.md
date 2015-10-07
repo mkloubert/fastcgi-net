@@ -48,3 +48,28 @@ using (var server = new global::MarcelJoachimKloubert.FastCGI.Server(settings))
 ```
 
 That's all!
+
+## Web servers
+
+### nginx
+
+An example for [nginx](http://nginx.org/) server:
+
+```
+http {
+    # ...
+
+    server {
+        # ...
+    
+        location \ {
+            root           html;
+            fastcgi_pass   127.0.0.1:9001;
+            fastcgi_index  index.html;
+            fastcgi_param  SCRIPT_FILENAME	$document_root$fastcgi_script_name;
+            
+            include        fastcgi_params;
+        }
+    }
+}
+```
