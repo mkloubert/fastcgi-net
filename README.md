@@ -25,9 +25,9 @@ httpHandler.Request += (sender, e) =>
         // this is (true) by default
         e.Response.NotFound = false;
     
-        // work with:
-        
-        e.Response.Write("Hello, World!");
+        // send content
+        e.Response
+         .Write("<html>Hello, World!</html>");
     };
 
 settings.Handler = httpHandler;
