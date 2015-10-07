@@ -62,7 +62,7 @@ http {
     server {
         # ...
     
-        location \ {
+        location / {
             root           html;
             fastcgi_pass   127.0.0.1:9001;
             fastcgi_index  index.html;
