@@ -55,7 +55,7 @@ That's all!
 
 An example for [nginx](http://nginx.org/) server:
 
-```
+```nginx
 http {
     # ...
 
