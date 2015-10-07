@@ -135,6 +135,14 @@ namespace MarcelJoachimKloubert.FastCGI.Test
                             Console.WriteLine("Stopped.");
                         };
 
+                    // if nothing is registrated with that event
+                    // any client will be accepted
+                    server.ValidateClient += (sender, e) =>
+                        {
+                            // this is (false) by default!
+                            e.IsValid = true;
+                        };
+
                     server.Start();
 
                     Console.WriteLine();
