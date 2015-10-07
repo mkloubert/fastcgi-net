@@ -28,6 +28,7 @@
  **********************************************************************************************************************/
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -82,7 +83,17 @@ namespace MarcelJoachimKloubert.FastCGI
 
         #endregion Constructors (1)
 
-        #region Events (7)
+        #region Events (10)
+
+        /// <summary>
+        /// Is raised when a client has been connected.
+        /// </summary>
+        public event EventHandler<ClientEventArgs> Connected;
+
+        /// <summary>
+        /// Is raised after the connection with a client has been closed.
+        /// </summary>
+        public event EventHandler<ClientEventArgs> Disconnected;
 
         /// <summary>
         /// Is raised when server begins disposing itself.
@@ -119,7 +130,12 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         public event EventHandler Stopping;
 
-        #endregion Events (7)
+        /// <summary>
+        /// Is raised to validate a remote client.
+        /// </summary>
+        public event EventHandler<ValidateClientEventArgs> ValidateClient;
+
+        #endregion Events (10)
 
         #region Properties (3)
 
@@ -151,7 +167,7 @@ namespace MarcelJoachimKloubert.FastCGI
 
         #endregion Properties (3)
 
-        #region Methods (16)
+        #region Methods (18)
 
         /// <summary>
         /// Starts listening for a TCP client connection.
@@ -317,8 +333,11 @@ namespace MarcelJoachimKloubert.FastCGI
         /// The async callback for <see cref="Server.BeginAcceptingTcpClient(TcpListener, bool)" /> method.
         /// </summary>
         /// <param name="ar">The async result.</param>
+        [DebuggerStepThrough]
         protected void EndAcceptingTcpClient(IAsyncResult ar)
         {
+            var waitForNext = true;
+
             TcpListener listener = null;
             try
             {
@@ -330,7 +349,31 @@ namespace MarcelJoachimKloubert.FastCGI
 
                 var client = listener.EndAcceptTcpClient(ar);
 
-                this.StartCommunicationWithTcpClient(client);
+                var remoteClient = new RemoteClient(this, client);
+
+                var e = new ValidateClientEventArgs(remoteClient);
+                e.IsValid = false;
+
+                if (!this.RaiseEventHandler(this.ValidateClient, e))
+                {
+                    e.IsValid = true;
+                }
+
+                if (e.IsValid)
+                {
+                    this.StartCommunicationWithRemoteClient(remoteClient);
+                }
+                else
+                {
+                    using (client.Client)
+                    {
+                        client.Close();
+                    }
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                waitForNext = false;
             }
             catch (Exception ex)
             {
@@ -338,7 +381,10 @@ namespace MarcelJoachimKloubert.FastCGI
             }
             finally
             {
-                this.BeginAcceptingTcpClient(listener);
+                if (waitForNext)
+                {
+                    this.BeginAcceptingTcpClient(listener);
+                }
             }
         }
 
@@ -395,6 +441,25 @@ namespace MarcelJoachimKloubert.FastCGI
             {
                 this._listener.Stop();
             }
+        }
+
+        /// <summary>
+        /// Raises the <see cref="Server.Disconnected" /> event.
+        /// </summary>
+        /// <param name="client">The underlying client.</param>
+        /// <returns>
+        /// Handler was raised (<see langword="true" />) or not <see langword="false" />.
+        /// <see langword="null" /> indicates that <paramref name="client" /> is <see langword="null" />.
+        /// </returns>
+        protected bool? RaiseClientDisconnected(IClient client)
+        {
+            if (client == null)
+            {
+                return null;
+            }
+
+            return this.RaiseEventHandler(this.Disconnected,
+                                         new ClientEventArgs(client));
         }
 
         /// <summary>
@@ -488,7 +553,7 @@ namespace MarcelJoachimKloubert.FastCGI
         /// <exception cref="ServerException">
         /// The raised exception.
         /// </exception>
-        protected bool? StartCommunicationWithTcpClient(TcpClient client, bool throwException = true)
+        protected bool? StartCommunicationWithRemoteClient(RemoteClient client, bool throwException = true)
         {
             if (client == null)
             {
@@ -507,6 +572,9 @@ namespace MarcelJoachimKloubert.FastCGI
 
                                           try
                                           {
+                                              server.RaiseEventHandler(server.Connected,
+                                                                       new ClientEventArgs(handler.RemoteClient));
+
                                               using (handler)
                                               {
                                                   do
@@ -579,6 +647,6 @@ namespace MarcelJoachimKloubert.FastCGI
             }
         }
 
-        #endregion Methods (16)
+        #endregion Methods (18)
     }
 }

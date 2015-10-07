@@ -41,12 +41,12 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         public class TcpClientConnectionHandler : FastCGIObject, IDisposable
         {
-            #region Fields (2)
+            #region Fields (3)
 
             /// <summary>
-            /// Stores the underlying client.
+            /// Stores the underlying remote client.
             /// </summary>
-            protected readonly TcpClient _CLIENT;
+            public readonly RemoteClient _REMOTE_CLIENT;
 
             /// <summary>
             /// Stores the underlying server.
@@ -58,7 +58,7 @@ namespace MarcelJoachimKloubert.FastCGI
             /// </summary>
             protected readonly NetworkStream _STREAM;
 
-            #endregion Fields (2)
+            #endregion Fields (3)
 
             #region Constructors (2)
 
@@ -70,7 +70,7 @@ namespace MarcelJoachimKloubert.FastCGI
             /// <exception cref="ArgumentNullException">
             /// At least one argument is <see langword="null" />.
             /// </exception>
-            public TcpClientConnectionHandler(Server server, TcpClient client)
+            public TcpClientConnectionHandler(Server server, RemoteClient client)
             {
                 if (server == null)
                 {
@@ -82,9 +82,9 @@ namespace MarcelJoachimKloubert.FastCGI
                     throw new ArgumentNullException("client");
                 }
 
-                this._STREAM = new NetworkStream(client.Client, true);
+                this._STREAM = new NetworkStream(client.Client.Client, true);
 
-                this._CLIENT = client;
+                this._REMOTE_CLIENT = client;
                 this._SERVER = server;
 
                 this.CloseConnection = true;
@@ -92,14 +92,14 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Constructors (2)
 
-            #region Properties (4)
+            #region Properties (6)
 
             /// <summary>
-            /// Gets the underlying client.
+            /// Gets the underlying TCP client.
             /// </summary>
             public TcpClient Client
             {
-                get { return this._CLIENT; }
+                get { return this._REMOTE_CLIENT.Client; }
             }
 
             /// <summary>
@@ -110,6 +110,14 @@ namespace MarcelJoachimKloubert.FastCGI
             {
                 get;
                 protected set;
+            }
+
+            /// <summary>
+            /// Gets the underlying remote client.
+            /// </summary>
+            public RemoteClient RemoteClient
+            {
+                get { return this._REMOTE_CLIENT; }
             }
 
             /// <summary>
@@ -128,7 +136,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 get { return this._STREAM; }
             }
 
-            #endregion Properties (4)
+            #endregion Properties (6)
 
             #region Methods (7)
 

@@ -36,6 +36,32 @@ namespace MarcelJoachimKloubert.FastCGI.Test
 {
     internal static class Program
     {
+        private static void InvokeForConsoleColor(Action action, ConsoleColor? foreColor = null, ConsoleColor? bgColor = null)
+        {
+            var oldBGColor = Console.BackgroundColor; 
+            var oldFGColor = Console.ForegroundColor;
+
+            try
+            {
+                if (foreColor.HasValue)
+                {
+                    Console.ForegroundColor = foreColor.Value;
+                }
+
+                if (bgColor.HasValue)
+                {
+                    Console.BackgroundColor = bgColor.Value;
+                }
+
+                action();
+            }
+            finally
+            {
+                Console.BackgroundColor = oldBGColor;
+                Console.ForegroundColor = oldFGColor;
+            }
+        }
+
         private static void Main(string[] args)
         {
             try
@@ -63,6 +89,20 @@ namespace MarcelJoachimKloubert.FastCGI.Test
 
                 using (var server = new FastCGIServer(settings))
                 {
+                    server.Connected += (sender, e) =>
+                        {
+                            InvokeForConsoleColor(() =>
+                                {
+                                    Console.WriteLine("[New connection] Connected with '{0}'.", e.Client.Address);
+                                }, ConsoleColor.White, ConsoleColor.Black);
+                        };
+                    server.Disconnected += (sender, e) =>
+                        {
+                            InvokeForConsoleColor(() =>
+                                {
+                                    Console.WriteLine("[Connection closed] Connection with '{0}' has been closed.", e.Client.Address);
+                                });
+                        };
                     server.Disposing += (sender, e) =>
                         {
                             Console.WriteLine("Disposing...");
@@ -70,6 +110,13 @@ namespace MarcelJoachimKloubert.FastCGI.Test
                     server.Disposed += (sender, e) =>
                         {
                             Console.WriteLine("Disposed.");
+                        };
+                    server.Error += (sender, e) =>
+                        {
+                            InvokeForConsoleColor(() =>
+                                {
+                                    Console.WriteLine("[ERROR!] {0}", e.Error);
+                                }, ConsoleColor.Red, ConsoleColor.Black);
                         };
                     server.Starting += (sender, e) =>
                         {
@@ -100,8 +147,12 @@ namespace MarcelJoachimKloubert.FastCGI.Test
                     server.Stop();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                InvokeForConsoleColor(() =>
+                    {
+                        Console.WriteLine("[FATAL ERROR!!!] {0}", ex);
+                    }, ConsoleColor.Yellow, ConsoleColor.Red);
             }
 
 #if DEBUG

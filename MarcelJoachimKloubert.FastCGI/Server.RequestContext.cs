@@ -237,7 +237,13 @@ namespace MarcelJoachimKloubert.FastCGI
 
                     try
                     {
-                        this.Handler.Stream.Close();
+                        using (this.Handler.Stream)
+                        {
+                            this.Handler.Stream.Close();
+
+                            this.Handler.Server
+                                        .RaiseClientDisconnected(this.Handler.Handler.RemoteClient);
+                        }
                     }
                     catch (Exception ex)
                     {

@@ -77,6 +77,7 @@
     <Compile Include="Http\HttpRequestServerErrorEventArgs.cs" />
     <Compile Include="Http\IHttpRequest.cs" />
     <Compile Include="Http\IHttpResponse.cs" />
+    <Compile Include="IClient.cs" />
     <Compile Include="IRequestContext.cs" />
     <Compile Include="IRequestHandler.cs" />
     <Compile Include="IRequestParameters.cs" />
@@ -86,6 +87,9 @@
     <Compile Include="Records\InputRecord.cs" />
     <Compile Include="Records\ProtocolStatus.cs" />
     <Compile Include="Records\RecordBuilder.cs" />
+    <Compile Include="Server.RemoteClient.cs">
+      <DependentUpon>Server.cs</DependentUpon>
+    </Compile>
     <Compile Include="Server.RequestContext.cs">
       <DependentUpon>Server.cs</DependentUpon>
     </Compile>
@@ -109,6 +113,8 @@
       <DependentUpon>Server.cs</DependentUpon>
     </Compile>
     <Compile Include="StreamFactory.cs" />
+    <Compile Include="ClientEventArgs.cs" />
+    <Compile Include="ValidateClientEventArgs.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\LICENSE">
