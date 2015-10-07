@@ -27,8 +27,7 @@ httpHandler.Request += (sender, e) =>
     
         // work with:
         
-        // e.Request
-        // e.Response
+        e.Response.Write("Hello, World!");
     };
 
 settings.Handler = httpHandler;
