@@ -22,6 +22,9 @@ var httpHandler = new global::MarcelJoachimKloubert.FastCGI.Http.HttpRequestHand
 // a HTTP request
 httpHandler.Request += (sender, e) =>
     {
+        // this is (true) by default
+        e.Response.NotFound = false;
+    
         // work with:
         
         // e.Request
