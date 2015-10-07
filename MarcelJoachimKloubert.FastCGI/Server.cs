@@ -365,9 +365,16 @@ namespace MarcelJoachimKloubert.FastCGI
                 }
                 else
                 {
-                    using (client.Client)
+                    try
                     {
-                        client.Close();
+                        using (client.Client)
+                        {
+                            client.Close();
+                        }
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // ignore this
                     }
                 }
             }
