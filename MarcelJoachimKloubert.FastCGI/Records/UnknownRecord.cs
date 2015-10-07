@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -36,7 +37,7 @@ namespace MarcelJoachimKloubert.FastCGI.Records
     /// <summary>
     /// An unknown / no defined request.
     /// </summary>
-    public class UnknownRecord
+    public class UnknownRecord : FastCGIObject
     {
         #region Constructors (1)
 

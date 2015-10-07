@@ -27,43 +27,16 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-using System;
-using System.Collections.Generic;
+using System.IO;
 
-namespace MarcelJoachimKloubert.FastCGI.Http
+namespace MarcelJoachimKloubert.FastCGI
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Describes a method / function that creates a stream from a request context.
     /// </summary>
-    public interface IHttpRequest
-    {
-        #region Properties (5)
-
-        /// <summary>
-        /// Gets the underlying FastCGI context.
-        /// </summary>
-        IRequestContext Context { get; }
-
-        /// <summary>
-        /// Gets the list of headers.
-        /// </summary>
-        IDictionary<string, string> Headers { get; }
-
-        /// <summary>
-        /// Gets the uppercase name of the HTTP method.
-        /// </summary>
-        string Method { get; }
-
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> Query { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (5)
-    }
+    /// <param name="context">The underlying request context.</param>
+    /// <param name="readBufferSize">The variable where to write down the buffer size the new stream can be read with.</param>
+    /// <param name="writeBufferSize">The variable where to write down the buffer size the new stream can be written with.</param>
+    /// <returns></returns>
+    public delegate Stream StreamFactory(IRequestContext context, ref int? readBufferSize, ref int? writeBufferSize);
 }

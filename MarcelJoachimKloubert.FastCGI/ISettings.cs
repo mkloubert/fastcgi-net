@@ -27,8 +27,6 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-using System;
-using System.IO;
 using System.Net;
 
 namespace MarcelJoachimKloubert.FastCGI
@@ -38,12 +36,7 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public interface ISettings
     {
-        #region Properties (4)
-
-        /// <summary>
-        /// Provides the stream that is used to store the request body.
-        /// </summary>
-        Func<IRequestContext, Stream> BodyStreamProvider { get; }
+        #region Properties (7)
 
         /// <summary>
         /// Gets the handler to use.
@@ -51,15 +44,36 @@ namespace MarcelJoachimKloubert.FastCGI
         IRequestHandler Handler { get; }
 
         /// <summary>
+        /// Creates the stream that is used to store the request body.
+        /// </summary>
+        StreamFactory InputStreamFactory { get; }
+
+        /// <summary>
         /// Gets the local address for the server.
         /// </summary>
         IPAddress LocalAddress { get; }
+
+        /// <summary>
+        /// Creates the stream that is used to store the response body.
+        /// </summary>
+        StreamFactory OutputStreamFactory { get; }
 
         /// <summary>
         /// Gets the TCP port to use.
         /// </summary>
         int Port { get; }
 
-        #endregion Properties (4)
+        /// <summary>
+        /// Gets the object that is used for thread safe operations.
+        /// </summary>
+        object SyncRoot { get; }
+
+        /// <summary>
+        /// Gets the buffer size in bytes that is used to write to the connected FastCGI client.
+        /// <see langword="null" /> indicates to use the system's default.
+        /// </summary>
+        int? WriteBufferSize { get; }
+
+        #endregion Properties (7)
     }
 }

@@ -29,41 +29,98 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
-namespace MarcelJoachimKloubert.FastCGI.Http
+namespace MarcelJoachimKloubert.FastCGI.Helpers
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Helper class for bit and byte operations.
     /// </summary>
-    public interface IHttpRequest
+    public static class BitHelper
     {
-        #region Properties (5)
+        #region Methods (4)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Returns binary data as array.
         /// </summary>
-        IRequestContext Context { get; }
+        /// <param name="data">The input value.</param>
+        /// <param name="nullAsEmpty">
+        /// Return an empty array if <paramref name="data" /> is <see langword="null" /> (<see langword="true" />)
+        /// or <see langword="null" /> (<see langword="false" />).
+        /// </param>
+        /// <returns>The output value.</returns>
+        public static byte[] AsArray(IEnumerable<byte> data, bool nullAsEmpty = false)
+        {
+            return CollectionHelper.AsArray<byte>(data, nullAsEmpty);
+        }
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Converts a <see cref="ushort" /> to a byte array.
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        /// <param name="value"></param>
+        /// <returns>The converted data.</returns>
+        public static byte[] GetBytes(ushort value)
+        {
+            return BitConverter.GetBytes(value)
+                               .Reverse().ToArray();
+        }
 
         /// <summary>
-        /// Gets the uppercase name of the HTTP method.
+        /// Returns the (whole) content of a stream as byte array.
         /// </summary>
-        string Method { get; }
+        /// <param name="stream">The stream to return.</param>
+        /// <returns>
+        /// The data of <paramref name="stream" />.
+        /// </returns>
+        public static byte[] ToByteArray(Stream stream)
+        {
+            if (stream == null)
+            {
+                return null;
+            }
+
+            if (stream is MemoryStream)
+            {
+                return ((MemoryStream)stream).ToArray();
+            }
+
+            long? oldPosition = null;
+            try
+            {
+                if (stream.CanSeek)
+                {
+                    oldPosition = stream.Position;
+                    stream.Position = 0;
+                }
+
+                using (var temp = new MemoryStream())
+                {
+                    stream.CopyTo(temp);
+
+                    return temp.ToArray();
+                }
+            }
+            finally
+            {
+                if (oldPosition.HasValue)
+                {
+                    stream.Position = oldPosition.Value;
+                }
+            }
+        }
 
         /// <summary>
-        /// Gets the list of variables from the query string.
+        /// Converts binary data to <see cref="ushort" />.
         /// </summary>
-        IDictionary<string, string> Query { get; }
+        /// <param name="data">The input data.</param>
+        /// <returns>The converted data.</returns>
+        public static ushort ToUInt16(IEnumerable<byte> data)
+        {
+            return BitConverter.ToUInt16(AsArray(data).Reverse().ToArray(),
+                                         0);
+        }
 
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (5)
+        #endregion Methods (4)
     }
 }

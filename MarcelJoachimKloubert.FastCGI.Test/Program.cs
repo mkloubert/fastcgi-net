@@ -43,11 +43,16 @@ namespace MarcelJoachimKloubert.FastCGI.Test
                 var handler = new FastCGIHttpRequestHandler();
                 handler.Request += (sender, e) =>
                     {
-                        var sl = e.Request.Context.Parameters.ToStringList();
+                        e.Response.NotFound = false;
 
-                        if (e != null)
+                        var obj = new
                         {
-                        }
+                            hello = "World!",
+                        };
+
+                        e.Response.SetupForJson();
+
+                        e.Response.WriteJson(obj);
                     };
 
                 var settings = new FastCGISettings()

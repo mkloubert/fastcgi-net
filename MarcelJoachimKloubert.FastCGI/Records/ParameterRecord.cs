@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -135,7 +136,7 @@ namespace MarcelJoachimKloubert.FastCGI.Records
 
             var @params = new ServerRequestParameters()
             {
-                Parameters = values,
+                Parameters = new ReadOnlyDictionary<string, byte[]>(values),
             };
 
             this.Parameters = @params;

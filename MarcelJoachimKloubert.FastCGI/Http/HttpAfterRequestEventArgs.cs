@@ -28,42 +28,43 @@
  **********************************************************************************************************************/
 
 using System;
-using System.Collections.Generic;
 
 namespace MarcelJoachimKloubert.FastCGI.Http
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Arguments for an event that is being invoked AFTER a request has been handled (or not).
     /// </summary>
-    public interface IHttpRequest
+    public class HttpAfterRequestEventArgs : HttpRequestErrorEventArgs
     {
-        #region Properties (5)
+        #region Constructors (1)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Initializes a new instance of the <see cref="HttpAfterRequestEventArgs" /> class.
         /// </summary>
-        IRequestContext Context { get; }
+        /// <param name="request">The value for the <see cref="HttpRequestEventArgs.Request" /> property.</param>
+        /// <param name="response">The value for the <see cref="HttpRequestEventArgs.Response" /> property.</param>
+        /// <param name="skipped">The value for the <see cref="HttpAfterRequestEventArgs.Skipped" /> property.</param>
+        /// <param name="error">The value for the <see cref="HttpRequestErrorEventArgs.Error" /> property.</param>
+        public HttpAfterRequestEventArgs(IHttpRequest request, IHttpResponse response, bool? skipped, Exception error)
+            : base(request, response, error)
+        {
+            this.Skipped = skipped;
+        }
+
+        #endregion Constructors (1)
+
+        #region Properties (1)
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Gets if the request handling has been skipped (<see langword="true" />) or not (<see langword="false" />).
+        /// <see langword="null" /> indicates that an error occured.
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        public bool? Skipped
+        {
+            get;
+            private set;
+        }
 
-        /// <summary>
-        /// Gets the uppercase name of the HTTP method.
-        /// </summary>
-        string Method { get; }
-
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> Query { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (5)
+        #endregion Properties (1)
     }
 }

@@ -27,111 +27,60 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
-namespace MarcelJoachimKloubert.FastCGI
+namespace MarcelJoachimKloubert.FastCGI.Helpers
 {
     /// <summary>
-    /// Helper class for bit and byte operations.
+    /// Helper class for string operations.
     /// </summary>
-    public static class BitHelper
+    public static class StringHelper
     {
-        #region Methods (4)
+        #region Methods (1)
 
         /// <summary>
-        /// Returns binary data as array.
+        /// Returns an object as string.
         /// </summary>
-        /// <param name="data">The input value.</param>
+        /// <param name="value">The value to convert / cast.</param>
         /// <param name="nullAsEmpty">
-        /// Return an empty array if <paramref name="data" /> is <see langword="null" /> (<see langword="true" />)
-        /// or <see langword="null" /> (<see langword="false" />).
+        /// Returns a <see langword="null" /> reference as empty string (<see langword="true" />)
+        /// or <see langword="null" /> instead (<see langword="false" />).
         /// </param>
-        /// <returns>The output value.</returns>
-        public static byte[] AsArray(IEnumerable<byte> data, bool nullAsEmpty = false)
+        /// <returns></returns>
+        public static string AsString(object value, bool nullAsEmpty = false)
         {
-            if (data == null)
+            string result = null;
+
+            if (value != null)
             {
-                return !nullAsEmpty ? null : new byte[0];
-            }
-
-            var result = data as byte[];
-            if (result == null)
-            {
-                result = data.ToArray();
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Converts a <see cref="ushort" /> to a byte array.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns>The converted data.</returns>
-        public static byte[] GetBytes(ushort value)
-        {
-            return BitConverter.GetBytes(value)
-                               .Reverse().ToArray();
-        }
-
-        /// <summary>
-        /// Returns the (whole) content of a stream as byte array.
-        /// </summary>
-        /// <param name="stream">The stream to return.</param>
-        /// <returns>
-        /// The data of <paramref name="stream" />.
-        /// </returns>
-        public static byte[] ToByteArray(Stream stream)
-        {
-            if (stream == null)
-            {
-                return null;
-            }
-
-            if (stream is MemoryStream)
-            {
-                return ((MemoryStream)stream).ToArray();
-            }
-
-            long? oldPosition = null;
-            try
-            {
-                if (stream.CanSeek)
+                if (value is string)
                 {
-                    oldPosition = stream.Position;
-                    stream.Position = 0;
+                    result = (string)value;
                 }
-
-                using (var temp = new MemoryStream())
+                else
                 {
-                    stream.CopyTo(temp);
+                    var chars = CollectionHelper.AsArray(value as IEnumerable<char>);
+                    if (chars != null)
+                    {
+                        result = new string(chars);
+                    }
+                    else
+                    {
+                        if (value is TextReader)
+                        {
+                            result = ((TextReader)value).ReadToEnd();
+                        }
+                    }
 
-                    return temp.ToArray();
+                    result = value.ToString();
                 }
             }
-            finally
-            {
-                if (oldPosition.HasValue)
-                {
-                    stream.Position = oldPosition.Value;
-                }
-            }
+
+            return result != null ? result
+                                  : (nullAsEmpty ? string.Empty : null);
         }
 
-        /// <summary>
-        /// Converts binary data to <see cref="ushort" />.
-        /// </summary>
-        /// <param name="data">The input data.</param>
-        /// <returns>The converted data.</returns>
-        public static ushort ToUInt16(IEnumerable<byte> data)
-        {
-            return BitConverter.ToUInt16(AsArray(data).Reverse().ToArray(),
-                                         0);
-        }
-
-        #endregion Methods (4)
+        #endregion Methods (1)
     }
 }

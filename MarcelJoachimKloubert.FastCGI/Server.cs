@@ -28,6 +28,7 @@
  **********************************************************************************************************************/
 
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -37,7 +38,7 @@ namespace MarcelJoachimKloubert.FastCGI
     /// <summary>
     /// A FastCGI server.
     /// </summary>
-    public partial class Server : IDisposable
+    public partial class Server : FastCGIObject, IDisposable
     {
         #region Fields (3)
 
@@ -52,9 +53,9 @@ namespace MarcelJoachimKloubert.FastCGI
         protected ISettings _SETTINGS;
 
         /// <summary>
-        /// An unique object for thread safe operations.
+        /// An object for thread safe operations.
         /// </summary>
-        protected readonly object _SYNC = new object();
+        protected readonly object _SYNC;
 
         #endregion Fields (3)
 
@@ -67,6 +68,8 @@ namespace MarcelJoachimKloubert.FastCGI
         public Server(ISettings settings = null)
         {
             this._SETTINGS = settings ?? new Settings();
+
+            this._SYNC = this._SETTINGS.SyncRoot ?? new object();
         }
 
         /// <summary>
@@ -118,7 +121,7 @@ namespace MarcelJoachimKloubert.FastCGI
 
         #endregion Events (7)
 
-        #region Properties (1)
+        #region Properties (3)
 
         /// <summary>
         /// Gets if the server has been disposed (<see langword="true" />) or not (<see langword="false" />).
@@ -138,9 +141,17 @@ namespace MarcelJoachimKloubert.FastCGI
             private set;
         }
 
-        #endregion Properties (1)
+        /// <summary>
+        /// Gets the object that is used for thread safe operations.
+        /// </summary>
+        public object SyncRoot
+        {
+            get { return this._SYNC; }
+        }
 
-        #region Methods (14)
+        #endregion Properties (3)
+
+        #region Methods (16)
 
         /// <summary>
         /// Starts listening for a TCP client connection.
@@ -176,6 +187,92 @@ namespace MarcelJoachimKloubert.FastCGI
         }
 
         /// <summary>
+        /// Creates a stream that can be used for the input body that is send from the remote client.
+        /// </summary>
+        /// <param name="context">The underlying context.</param>
+        /// <param name="readBufferSize">The variable where to write down the buffer size the new stream can be read with.</param>
+        /// <param name="writeBufferSize">The variable where to write down the buffer size the new stream can be written with.</param>
+        /// <returns>The created stream.</returns>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="context" /> is <see langword="null" />.
+        /// </exception>
+        public Stream CreateInputStream(IRequestContext context, ref int? readBufferSize, ref int? writeBufferSize)
+        {
+            if (context == null)
+            {
+                throw new ArgumentNullException("context");
+            }
+
+            var factory = this._SETTINGS.InputStreamFactory ?? this.DefaultInputStreamFactory;
+
+            var result = factory(context, ref readBufferSize, ref writeBufferSize);
+            if (result == null)
+            {
+                result = new MemoryStream();
+
+                readBufferSize = null;
+                writeBufferSize = null;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a stream that can be used for the output body that is send to the remote client.
+        /// </summary>
+        /// <param name="context">The underlying context.</param>
+        /// <param name="readBufferSize">The variable where to write down the buffer size the new stream can be read with.</param>
+        /// <param name="writeBufferSize">The variable where to write down the buffer size the new stream can be written with.</param>
+        /// <returns>The created stream.</returns>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="context" /> is <see langword="null" />.
+        /// </exception>
+        public Stream CreateOutputStream(IRequestContext context, ref int? readBufferSize, ref int? writeBufferSize)
+        {
+            if (context == null)
+            {
+                throw new ArgumentNullException("context");
+            }
+
+            var factory = this._SETTINGS.OutputStreamFactory ?? this.DefaultOutputStreamFactory;
+
+            var result = factory(context, ref readBufferSize, ref writeBufferSize);
+            if (result == null)
+            {
+                result = new MemoryStream();
+
+                readBufferSize = null;
+                writeBufferSize = null;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// The default factory that created a stream that can be used for the input body that is send from the remote client.
+        /// </summary>
+        /// <param name="context">The underlying context.</param>
+        /// <param name="readBufferSize">The variable where to write down the buffer size the new stream can be read with.</param>
+        /// <param name="writeBufferSize">The variable where to write down the buffer size the new stream can be written with.</param>
+        /// <returns>The created stream.</returns>
+        protected virtual Stream DefaultInputStreamFactory(IRequestContext context, ref int? readBufferSize, ref int? writeBufferSize)
+        {
+            return new MemoryStream();
+        }
+
+        /// <summary>
+        /// The default factory that created a stream that can be used for the output body that is send to the remote client.
+        /// </summary>
+        /// <param name="context">The underlying context.</param>
+        /// <param name="readBufferSize">The variable where to write down the buffer size the new stream can be read with.</param>
+        /// <param name="writeBufferSize">The variable where to write down the buffer size the new stream can be written with.</param>
+        /// <returns>The created stream.</returns>
+        protected virtual Stream DefaultOutputStreamFactory(IRequestContext context, ref int? readBufferSize, ref int? writeBufferSize)
+        {
+            return new MemoryStream();
+        }
+
+        /// <summary>
         /// <see cref="IDisposable.Dispose()" />
         /// </summary>
         public void Dispose()
@@ -193,18 +290,25 @@ namespace MarcelJoachimKloubert.FastCGI
                     return;
                 }
 
-                if (disposing)
+                try
                 {
-                    this.RaiseEventHandler(this.Disposing);
+                    if (disposing)
+                    {
+                        this.RaiseEventHandler(this.Disposing);
+                    }
+
+                    var isDisposed = disposing ? true : this.IsDisposed;
+                    this.OnDispose(disposing, ref isDisposed);
+
+                    this.IsDisposed = isDisposed;
+                    if (this.IsDisposed)
+                    {
+                        this.RaiseEventHandler(this.Disposed);
+                    }
                 }
-
-                var isDisposed = disposing ? true : this.IsDisposed;
-                this.OnDispose(disposing, ref isDisposed);
-
-                this.IsDisposed = isDisposed;
-                if (this.IsDisposed)
+                catch (Exception ex)
                 {
-                    this.RaiseEventHandler(this.Disposed);
+                    this.RaiseError(ex, disposing);
                 }
             }
         }
@@ -264,20 +368,14 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </param>
         protected virtual void OnStart(ref bool isRunning)
         {
-            try
-            {
-                var newListener = new TcpListener(this._SETTINGS.LocalAddress ?? IPAddress.Any,
-                                                  this._SETTINGS.Port);
-                newListener.Start();
+            var newListener = new TcpListener(this._SETTINGS.LocalAddress ?? IPAddress.Loopback,
+                                              this._SETTINGS.Port);
 
-                this.BeginAcceptingTcpClient(newListener, true);
+            newListener.Start();
 
-                this._listener = newListener;
-            }
-            catch (Exception ex)
-            {
-                this.RaiseError(ex, true);
-            }
+            this.BeginAcceptingTcpClient(newListener, true);
+
+            this._listener = newListener;
         }
 
         /// <summary>
@@ -293,6 +391,10 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </param>
         protected virtual void OnStop(bool? disposing, ref bool isRunning)
         {
+            using (this._listener.Server)
+            {
+                this._listener.Stop();
+            }
         }
 
         /// <summary>
@@ -316,14 +418,18 @@ namespace MarcelJoachimKloubert.FastCGI
                 return null;
             }
 
-            var serverEx = ex as ServerException;
-            if (serverEx == null)
-            {
-                serverEx = new ServerException(ex);
-            }
+            var serverEx = (ex as ServerException) ?? new ServerException(ex);
 
-            var result = this.RaiseEventHandler(this.Error,
+            bool result;
+            try
+            {
+                result = this.RaiseEventHandler(this.Error,
                                                 new ServerErrorEventArgs(serverEx));
+            }
+            catch
+            {
+                result = false;
+            }
 
             if (rethrow)
             {
@@ -334,73 +440,37 @@ namespace MarcelJoachimKloubert.FastCGI
         }
 
         /// <summary>
-        /// Raises an event handler.
-        /// </summary>
-        /// <param name="handler">The handler to raise.</param>
-        /// <returns>Handler was raised (<see langword="true" />); otherwise <paramref name="handler" /> is <see langword="null" />.</returns>
-        protected bool RaiseEventHandler(EventHandler handler)
-        {
-            if (handler != null)
-            {
-                handler(this, EventArgs.Empty);
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Raises an event handler.
-        /// </summary>
-        /// <typeparam name="TArgs">Type of the event arguments.</typeparam>
-        /// <param name="handler">The handler to raise.</param>
-        /// <param name="e">The arguments for the event.</param>
-        /// <returns>Handler was raised (<see langword="true" />); otherwise <paramref name="handler" /> is <see langword="null" />.</returns>
-        /// <exception cref="ArgumentNullException">
-        /// <paramref name="e" /> is <see langword="null" />.
-        /// </exception>
-        protected bool RaiseEventHandler<TArgs>(EventHandler<TArgs> handler, TArgs e)
-            where TArgs : global::System.EventArgs
-        {
-            if (e == null)
-            {
-                throw new ArgumentNullException("e");
-            }
-
-            if (handler != null)
-            {
-                handler(this, e);
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// Starts the server.
         /// </summary>
         /// <exception cref="ObjectDisposedException">Server has been disposed.</exception>
         public void Start()
         {
-            lock (this._SYNC)
+            try
             {
-                this.ThrowIfDisposed();
-
-                if (this.IsRunning)
+                lock (this._SYNC)
                 {
-                    return;
+                    this.ThrowIfDisposed();
+
+                    if (this.IsRunning)
+                    {
+                        return;
+                    }
+
+                    this.RaiseEventHandler(this.Starting);
+
+                    var isRunning = true;
+                    this.OnStart(ref isRunning);
+
+                    this.IsRunning = isRunning;
+                    if (this.IsRunning)
+                    {
+                        this.RaiseEventHandler(this.Started);
+                    }
                 }
-
-                this.RaiseEventHandler(this.Starting);
-
-                var isRunning = true;
-                this.OnStart(ref isRunning);
-
-                this.IsRunning = isRunning;
-                if (this.IsRunning)
-                {
-                    this.RaiseEventHandler(this.Started);
-                }
+            }
+            catch (Exception ex)
+            {
+                this.RaiseError(ex, true);
             }
         }
 
@@ -432,20 +502,23 @@ namespace MarcelJoachimKloubert.FastCGI
                 Task.Factory
                     .StartNew(action: (state) =>
                                       {
-                                          using (var handler = (TcpClientConnectionHandler)state)
+                                          var handler = (TcpClientConnectionHandler)state;
+                                          var server = handler.Server;
+
+                                          try
                                           {
-                                              do
+                                              using (handler)
                                               {
-                                                  try
+                                                  do
                                                   {
                                                       handler.HandleNext();
                                                   }
-                                                  catch (Exception ex)
-                                                  {
-                                                      handler.Server.RaiseError(ex);
-                                                  }
+                                                  while (!handler.CloseConnection);
                                               }
-                                              while (!handler.CloseConnection);
+                                          }
+                                          catch (Exception ex)
+                                          {
+                                              server.RaiseError(ex, false);
                                           }
                                       },
                                       state: newHandler);
@@ -465,25 +538,32 @@ namespace MarcelJoachimKloubert.FastCGI
         /// <exception cref="ObjectDisposedException">Server has been disposed.</exception>
         public void Stop()
         {
-            lock (this._SYNC)
+            try
             {
-                this.ThrowIfDisposed();
-
-                if (!this.IsRunning)
+                lock (this._SYNC)
                 {
-                    return;
+                    this.ThrowIfDisposed();
+
+                    if (!this.IsRunning)
+                    {
+                        return;
+                    }
+
+                    this.RaiseEventHandler(this.Stopping);
+
+                    var isRunning = false;
+                    this.OnStop(null, ref isRunning);
+
+                    this.IsRunning = isRunning;
+                    if (!this.IsRunning)
+                    {
+                        this.RaiseEventHandler(this.Stopped);
+                    }
                 }
-
-                this.RaiseEventHandler(this.Stopping);
-
-                var isRunning = false;
-                this.OnStop(null, ref isRunning);
-
-                this.IsRunning = isRunning;
-                if (!this.IsRunning)
-                {
-                    this.RaiseEventHandler(this.Stopped);
-                }
+            }
+            catch (Exception ex)
+            {
+                this.RaiseError(ex, true);
             }
         }
 
@@ -499,6 +579,6 @@ namespace MarcelJoachimKloubert.FastCGI
             }
         }
 
-        #endregion Methods (14)
+        #endregion Methods (16)
     }
 }

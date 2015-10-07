@@ -31,7 +31,7 @@ using System.Collections.Generic;
 
 namespace MarcelJoachimKloubert.FastCGI
 {
-    internal class CaseInsensitiveComparer : IEqualityComparer<string>, IComparer<string>
+    internal class CaseInsensitiveComparer : FastCGIObject, IEqualityComparer<string>, IComparer<string>
     {
         #region Methods (4)
 

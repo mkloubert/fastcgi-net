@@ -28,6 +28,7 @@
  **********************************************************************************************************************/
 
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 
 namespace MarcelJoachimKloubert.FastCGI
@@ -37,17 +38,12 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public interface IRequestContext
     {
-        #region Properties (4)
+        #region Properties (3)
 
         /// <summary>
         /// Gets the server address.
         /// </summary>
         IPAddress Address { get; }
-
-        /// <summary>
-        /// Gets the request body.
-        /// </summary>
-        byte[] Body { get; }
 
         /// <summary>
         /// Gets the parameters.
@@ -59,9 +55,25 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         int Port { get; }
 
-        #endregion Properties (4)
+        #endregion Properties (3)
 
-        #region Methods (2)
+        #region Methods (6)
+
+        /// <summary>
+        /// Creates a stream that can be used for the input body that is send from the remote client.
+        /// </summary>
+        /// <param name="readBufferSize">The variable where to write down the buffer size the new stream can be read with.</param>
+        /// <param name="writeBufferSize">The variable where to write down the buffer size the new stream can be written with.</param>
+        /// <returns>The created stream.</returns>
+        Stream CreateInputStream(ref int? readBufferSize, ref int? writeBufferSize);
+
+        /// <summary>
+        ///  Creates a stream that can be used for the output body that is send to the remote client.
+        /// </summary>
+        /// <param name="readBufferSize">The variable where to write down the buffer size the new stream can be read with.</param>
+        /// <param name="writeBufferSize">The variable where to write down the buffer size the new stream can be written with.</param>
+        /// <returns>The created stream.</returns>
+        Stream CreateOutputStream(ref int? readBufferSize, ref int? writeBufferSize);
 
         /// <summary>
         /// Ends the requests.
@@ -75,6 +87,6 @@ namespace MarcelJoachimKloubert.FastCGI
         /// <returns>That instance.</returns>
         IRequestContext Write(IEnumerable<byte> data);
 
-        #endregion Methods (2)
+        #endregion Methods (6)
     }
 }

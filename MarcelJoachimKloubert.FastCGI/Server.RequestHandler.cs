@@ -40,7 +40,7 @@ namespace MarcelJoachimKloubert.FastCGI
         /// <summary>
         /// A request handler.
         /// </summary>
-        public class RequestHandler
+        public class RequestHandler : FastCGIObject
         {
             #region Fields (1)
 
@@ -77,8 +77,21 @@ namespace MarcelJoachimKloubert.FastCGI
                 this._CONTEXT.Address = this.Server._SETTINGS.LocalAddress ?? IPAddress.Loopback;
                 this._CONTEXT.Port = this.Server._SETTINGS.Port;
 
-                this._CONTEXT.BodyStream = (this.Server._SETTINGS.BodyStreamProvider ?? this.DefaultBodyStreamProvider)(this._CONTEXT) ??
-                                           new MemoryStream();
+                int? readBufferSize = null;
+                int? writeBufferSize = null;
+                this._CONTEXT.BodyStream = this._CONTEXT.CreateInputStream(ref readBufferSize, ref writeBufferSize);
+
+                this._CONTEXT.ReadBufferSize = readBufferSize;
+                if (this._CONTEXT.ReadBufferSize < 1)
+                {
+                    this._CONTEXT.ReadBufferSize = 10240;
+                }
+
+                this._CONTEXT.WriteBufferSize = writeBufferSize;
+                if (this._CONTEXT.WriteBufferSize < 1)
+                {
+                    this._CONTEXT.WriteBufferSize = 10240;
+                }
             }
 
             #endregion Constructors (1)
@@ -106,7 +119,7 @@ namespace MarcelJoachimKloubert.FastCGI
             /// <summary>
             /// Gets the ID of the request.
             /// </summary>
-            public ushort Id
+            public ushort RequestId
             {
                 get { return this.BaseRecord.RequestId; }
             }
@@ -130,16 +143,6 @@ namespace MarcelJoachimKloubert.FastCGI
             #endregion Properties (5)
 
             #region Methods (5)
-
-            /// <summary>
-            /// The default body stream provider of that object.
-            /// </summary>
-            /// <param name="context">The underlying FastCGI context.</param>
-            /// <returns>The created stream.</returns>
-            protected virtual Stream DefaultBodyStreamProvider(IRequestContext context)
-            {
-                return new MemoryStream();
-            }
 
             /// <summary>
             /// handle next steps.
@@ -203,8 +206,17 @@ namespace MarcelJoachimKloubert.FastCGI
             {
                 if (record.Data.LongLength > 0)
                 {
-                    this._CONTEXT.BodyStream
-                                 .Write(record.Data, 0, record.Data.Length);
+                    using (var temp = new MemoryStream(record.Data, false))
+                    {
+                        if (!this._CONTEXT.WriteBufferSize.HasValue)
+                        {
+                            temp.CopyTo(this._CONTEXT.BodyStream);
+                        }
+                        else
+                        {
+                            temp.CopyTo(this._CONTEXT.BodyStream, this._CONTEXT.WriteBufferSize.Value);
+                        }
+                    }
 
                     this.HandleNext();
                 }
@@ -214,6 +226,10 @@ namespace MarcelJoachimKloubert.FastCGI
                     if (handler != null)
                     {
                         handler.HandleRequest(this._CONTEXT);
+                    }
+                    else
+                    {
+                        this._CONTEXT.End();
                     }
                 }
             }

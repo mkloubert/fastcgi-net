@@ -28,7 +28,6 @@
  **********************************************************************************************************************/
 
 using System;
-using System.IO;
 using System.Net;
 
 namespace MarcelJoachimKloubert.FastCGI
@@ -36,8 +35,19 @@ namespace MarcelJoachimKloubert.FastCGI
     /// <summary>
     /// Settings.
     /// </summary>
-    public class Settings : ISettings
+    public class Settings : FastCGIObject, ISettings
     {
+        #region Fields (2)
+
+        private Lazy<object> _syncRoot;
+
+        /// <summary>
+        /// Stores the default TCP port.
+        /// </summary>
+        public int DEFAULT_PORT = 9001;
+
+        #endregion Fields (2)
+
         #region Constructors (1)
 
         /// <summary>
@@ -45,17 +55,13 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         public Settings()
         {
-            this.Port = 9001;
+            this.Port = DEFAULT_PORT;
+            this.SyncRoot = null;
         }
 
         #endregion Constructors (1)
 
-        #region Properties (4)
-
-        /// <summary>
-        /// <see cref="ISettings.BodyStreamProvider" />
-        /// </summary>
-        public Func<IRequestContext, Stream> BodyStreamProvider { get; set; }
+        #region Properties (7)
 
         /// <summary>
         /// <see cref="ISettings.LocalAddress" />
@@ -63,15 +69,40 @@ namespace MarcelJoachimKloubert.FastCGI
         public IRequestHandler Handler { get; set; }
 
         /// <summary>
+        /// <see cref="ISettings.InputStreamFactory" />
+        /// </summary>
+        public StreamFactory InputStreamFactory { get; set; }
+
+        /// <summary>
         /// <see cref="ISettings.LocalAddress" />
         /// </summary>
         public IPAddress LocalAddress { get; set; }
+
+        /// <summary>
+        /// <see cref="ISettings.OutputStreamFactory" />
+        /// </summary>
+        public StreamFactory OutputStreamFactory { get; set; }
 
         /// <summary>
         /// <see cref="ISettings.Port" />
         /// </summary>
         public int Port { get; set; }
 
-        #endregion Properties (4)
+        /// <summary>
+        /// <see cref="ISettings.SyncRoot" />
+        /// </summary>
+        public object SyncRoot
+        {
+            get { return this._syncRoot.Value; }
+
+            set { this._syncRoot = new Lazy<object>(() => value ?? new object()); }
+        }
+
+        /// <summary>
+        /// <see cref="ISettings.WriteBufferSize" />
+        /// </summary>
+        public int? WriteBufferSize { get; set; }
+
+        #endregion Properties (7)
     }
 }

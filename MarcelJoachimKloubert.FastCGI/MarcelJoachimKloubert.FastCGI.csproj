@@ -37,18 +37,32 @@
   <PropertyGroup>
     <StartupObject />
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>MarcelJoachimKloubert.FastCGI.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>_Libs\Json.NET\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BitHelper.cs" />
+    <Compile Include="FastCGIObject.cs" />
+    <Compile Include="Helpers\BitHelper.cs" />
     <Compile Include="CaseInsensitiveComparer.cs" />
+    <Compile Include="Collections\ReadOnlyDictionary.cs" />
+    <Compile Include="Helpers\CollectionHelper.cs" />
+    <Compile Include="Helpers\StringHelper.cs" />
+    <Compile Include="Http\HttpAfterRequestEventArgs.cs" />
+    <Compile Include="Http\HttpBeforeRequestEventArgs.cs" />
+    <Compile Include="Http\HttpRequestClientErrorEventArgs.cs" />
+    <Compile Include="Http\HttpRequestErrorEventArgs.cs" />
     <Compile Include="Http\HttpRequestEventArgs.cs" />
     <Compile Include="Http\HttpRequestHandler.cs" />
     <Compile Include="Http\HttpRequestHandler.HttpRequest.cs">
@@ -57,6 +71,7 @@
     <Compile Include="Http\HttpRequestHandler.HttpResponse.cs">
       <DependentUpon>HttpRequestHandler.cs</DependentUpon>
     </Compile>
+    <Compile Include="Http\HttpRequestServerErrorEventArgs.cs" />
     <Compile Include="Http\IHttpRequest.cs" />
     <Compile Include="Http\IHttpResponse.cs" />
     <Compile Include="IRequestContext.cs" />
@@ -88,12 +103,20 @@
     <Compile Include="Server.TcpClientConnectionHandler.cs">
       <DependentUpon>Server.cs</DependentUpon>
     </Compile>
+    <Compile Include="StreamFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\LICENSE">
       <Link>LICENSE</Link>
     </EmbeddedResource>
     <None Include="App.config" />
+    <None Include="MarcelJoachimKloubert.FastCGI.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_Libs\Json.NET\license.txt" />
+    <None Include="_Libs\Json.NET\Newtonsoft.Json.dll" />
+    <None Include="_Libs\Json.NET\Newtonsoft.Json.xml" />
+    <None Include="_Libs\Json.NET\readme.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

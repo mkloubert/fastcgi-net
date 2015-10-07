@@ -27,43 +27,38 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-using System;
-using System.Collections.Generic;
-
 namespace MarcelJoachimKloubert.FastCGI.Http
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Arguments for an event that is being invoked BEFORE a request is handled.
     /// </summary>
-    public interface IHttpRequest
+    public class HttpBeforeRequestEventArgs : HttpRequestEventArgs
     {
-        #region Properties (5)
+        #region Constructors (1)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Initializes a new instance of the <see cref="HttpBeforeRequestEventArgs" /> class.
         /// </summary>
-        IRequestContext Context { get; }
+        /// <param name="request">The value for the <see cref="HttpRequestEventArgs.Request" /> property.</param>
+        /// <param name="response">The value for the <see cref="HttpRequestEventArgs.Response" /> property.</param>
+        public HttpBeforeRequestEventArgs(IHttpRequest request, IHttpResponse response)
+            : base(request, response)
+        {
+        }
+
+        #endregion Constructors (1)
+
+        #region Properties (1)
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Gets or sets if the request should not be handled (<see langword="true" />); otherwise <see langword="false" />.
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        public bool Skip
+        {
+            get;
+            set;
+        }
 
-        /// <summary>
-        /// Gets the uppercase name of the HTTP method.
-        /// </summary>
-        string Method { get; }
-
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> Query { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (5)
+        #endregion Properties (1)
     }
 }

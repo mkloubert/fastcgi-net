@@ -27,8 +27,8 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Helpers;
 using MarcelJoachimKloubert.FastCGI.Records;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -38,15 +38,13 @@ namespace MarcelJoachimKloubert.FastCGI
 {
     partial class Server
     {
-        internal class RequestContext : IRequestContext
+        internal class RequestContext : FastCGIObject, IRequestContext
         {
-            #region Fields (3)
+            #region Fields (1)
 
-            private Lazy<byte[]> _body;
-            private Stream _bodyStream;
             private IRequestParameters _parameters;
 
-            #endregion Fields (3)
+            #endregion Fields (1)
 
             #region Constructors (1)
 
@@ -65,23 +63,10 @@ namespace MarcelJoachimKloubert.FastCGI
                 internal set;
             }
 
-            public byte[] Body
-            {
-                get { return this._body.Value; }
-            }
-
             internal Stream BodyStream
             {
-                get { return this._bodyStream; }
-
-                set
-                {
-                    this._bodyStream = value;
-                    this._body = new Lazy<byte[]>(() =>
-                        {
-                            return BitHelper.ToByteArray(value);
-                        });
-                }
+                get;
+                set;
             }
 
             internal RequestHandler Handler
@@ -143,34 +128,58 @@ namespace MarcelJoachimKloubert.FastCGI
                 internal set;
             }
 
+            internal int? ReadBufferSize
+            {
+                get;
+                set;
+            }
+
+            internal int? WriteBufferSize
+            {
+                get;
+                set;
+            }
+
             #endregion Properties (6)
 
-            #region Methods (2)
+            #region Methods (4)
+
+            public Stream CreateInputStream(ref int? readBufferSize, ref int? writeBufferSize)
+            {
+                return this.Handler.Server.CreateInputStream(this, ref readBufferSize, ref writeBufferSize);
+            }
+
+            public Stream CreateOutputStream(ref int? readBufferSize, ref int? writeBufferSize)
+            {
+                return this.Handler.Server.CreateOutputStream(this, ref readBufferSize, ref writeBufferSize);
+            }
 
             public void End()
             {
                 var builder = new RecordBuilder();
-                builder.RequestId = this.Handler.Id;
+                builder.RequestId = this.Handler.RequestId;
                 builder.Type = RecordType.FCGI_END_REQUEST;
 
                 var recordData = builder.Build();
 
                 this.Handler.Stream
                             .Write(recordData, 0, recordData.Length);
+
+                //TODO close connection
             }
 
             public IRequestContext Write(IEnumerable<byte> data)
             {
                 using (var temp = new MemoryStream(BitHelper.AsArray(data, true), false))
                 {
-                    var buffer = new byte[1024];
+                    var buffer = new byte[this.WriteBufferSize ?? 10240];
 
                     int bytesRead;
                     while ((bytesRead = temp.Read(buffer, 0, buffer.Length)) > 0)
                     {
                         var builder = new RecordBuilder();
                         builder.Content = buffer.Take(bytesRead).ToArray();
-                        builder.RequestId = this.Handler.Id;
+                        builder.RequestId = this.Handler.RequestId;
                         builder.Type = RecordType.FCGI_STDOUT;
 
                         var recordData = builder.Build();
@@ -180,12 +189,10 @@ namespace MarcelJoachimKloubert.FastCGI
                     }
                 }
 
-                // this.Handler.HandleNext();
-
                 return this;
             }
 
-            #endregion Methods (2)
+            #endregion Methods (4)
         }
     }
 }

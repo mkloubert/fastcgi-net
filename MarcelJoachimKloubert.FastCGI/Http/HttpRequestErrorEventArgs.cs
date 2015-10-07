@@ -28,42 +28,50 @@
  **********************************************************************************************************************/
 
 using System;
-using System.Collections.Generic;
 
 namespace MarcelJoachimKloubert.FastCGI.Http
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Arguments for an event of a HTTP request that has failed.
     /// </summary>
-    public interface IHttpRequest
+    public class HttpRequestErrorEventArgs : HttpRequestEventArgs
     {
-        #region Properties (5)
+        #region Constructors (1)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Initializes a new instance of the <see cref="HttpRequestEventArgs" /> class.
         /// </summary>
-        IRequestContext Context { get; }
+        /// <param name="request">The value for the <see cref="HttpRequestEventArgs.Request" /> property.</param>
+        /// <param name="response">The value for the <see cref="HttpRequestEventArgs.Response" /> property.</param>
+        /// <param name="error">The value for the <see cref="HttpRequestErrorEventArgs.Error" /> property.</param>
+        public HttpRequestErrorEventArgs(IHttpRequest request, IHttpResponse response, Exception error = null)
+            : base(request, response)
+        {
+            this.Error = error;
+        }
+
+        #endregion Constructors (1)
+
+        #region Properties (2)
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Gets the underlying error (if defined).
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        public Exception Error
+        {
+            get;
+            private set;
+        }
 
         /// <summary>
-        /// Gets the uppercase name of the HTTP method.
+        /// Gtes or sets if the error was handled (<see langword="true" />) or not (<see langword="false" />).
         /// </summary>
-        string Method { get; }
+        public bool Handled
+        {
+            get;
+            set;
+        }
 
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> Query { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (5)
+        #endregion Properties (2)
     }
 }

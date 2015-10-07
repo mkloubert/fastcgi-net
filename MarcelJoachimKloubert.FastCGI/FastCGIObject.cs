@@ -28,42 +28,59 @@
  **********************************************************************************************************************/
 
 using System;
-using System.Collections.Generic;
 
-namespace MarcelJoachimKloubert.FastCGI.Http
+namespace MarcelJoachimKloubert.FastCGI
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// A basic object.
     /// </summary>
-    public interface IHttpRequest
+    public class FastCGIObject : MarshalByRefObject
     {
-        #region Properties (5)
+        #region Methods (2)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Raises an event handler.
         /// </summary>
-        IRequestContext Context { get; }
+        /// <param name="handler">The handler to raise.</param>
+        /// <returns>Handler was raised (<see langword="true" />); otherwise <paramref name="handler" /> is <see langword="null" />.</returns>
+        protected bool RaiseEventHandler(EventHandler handler)
+        {
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
+                return true;
+            }
+
+            return false;
+        }
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Raises an event handler.
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        /// <typeparam name="TArgs">Type of the event arguments.</typeparam>
+        /// <param name="handler">The handler to raise.</param>
+        /// <param name="e">The arguments for the event.</param>
+        /// <returns>Handler was raised (<see langword="true" />); otherwise <paramref name="handler" /> is <see langword="null" />.</returns>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="e" /> is <see langword="null" />.
+        /// </exception>
+        protected bool RaiseEventHandler<TArgs>(EventHandler<TArgs> handler, TArgs e)
+            where TArgs : global::System.EventArgs
+        {
+            if (e == null)
+            {
+                throw new ArgumentNullException("e");
+            }
 
-        /// <summary>
-        /// Gets the uppercase name of the HTTP method.
-        /// </summary>
-        string Method { get; }
+            if (handler != null)
+            {
+                handler(this, e);
+                return true;
+            }
 
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> Query { get; }
+            return false;
+        }
 
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (5)
+        #endregion Methods (2)
     }
 }

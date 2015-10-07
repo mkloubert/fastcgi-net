@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Collections;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,7 +41,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// <summary>
         /// A HTTP request context.
         /// </summary>
-        protected class HttpRequest : IHttpRequest
+        protected class HttpRequest : FastCGIObject, IHttpRequest
         {
             #region Constructors (1)
 
@@ -71,15 +72,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
 
             #endregion Constructors (1)
 
-            #region Properties (6)
-
-            /// <summary>
-            /// <see cref="IHttpRequest.Body" />
-            /// </summary>
-            public byte[] Body
-            {
-                get { return this.Context.Body; }
-            }
+            #region Properties (5)
 
             /// <summary>
             /// <see cref="IHttpRequest.Context" />
@@ -110,7 +103,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             /// </summary>
             public Uri Uri { get; protected set; }
 
-            #endregion Properties (6)
+            #endregion Properties (5)
 
             #region Methods (1)
 
@@ -262,9 +255,9 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                     method = "GET";
                 }
 
-                this.Headers = headers;
+                this.Headers = new ReadOnlyDictionary<string, string>(headers);
                 this.Method = method;
-                this.Query = query;
+                this.Query = new ReadOnlyDictionary<string, string>(query);
             }
 
             #endregion Methods (1)

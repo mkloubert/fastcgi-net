@@ -35,7 +35,7 @@ namespace MarcelJoachimKloubert.FastCGI
 {
     partial class Server
     {
-        internal class RequestParameters : IRequestParameters
+        internal class RequestParameters : FastCGIObject, IRequestParameters
         {
             #region Properties (1)
 

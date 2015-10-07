@@ -28,42 +28,27 @@
  **********************************************************************************************************************/
 
 using System;
-using System.Collections.Generic;
 
 namespace MarcelJoachimKloubert.FastCGI.Http
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Arguments for an event that handles a 5xx HTTP response (server error).
     /// </summary>
-    public interface IHttpRequest
+    public class HttpRequestServerErrorEventArgs : HttpRequestErrorEventArgs
     {
-        #region Properties (5)
+        #region Constructors (1)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Initializes a new instance of the <see cref="HttpRequestServerErrorEventArgs" /> class.
         /// </summary>
-        IRequestContext Context { get; }
+        /// <param name="request">The value for the <see cref="HttpRequestEventArgs.Request" /> property.</param>
+        /// <param name="response">The value for the <see cref="HttpRequestEventArgs.Response" /> property.</param>
+        /// <param name="error">The value for the <see cref="HttpRequestErrorEventArgs.Error" /> property.</param>
+        public HttpRequestServerErrorEventArgs(IHttpRequest request, IHttpResponse response, Exception error = null)
+            : base(request, response)
+        {
+        }
 
-        /// <summary>
-        /// Gets the list of headers.
-        /// </summary>
-        IDictionary<string, string> Headers { get; }
-
-        /// <summary>
-        /// Gets the uppercase name of the HTTP method.
-        /// </summary>
-        string Method { get; }
-
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> Query { get; }
-
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (5)
+        #endregion Constructors (1)
     }
 }

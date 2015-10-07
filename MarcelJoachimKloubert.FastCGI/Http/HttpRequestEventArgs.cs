@@ -51,7 +51,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
 
         #endregion Constructors (1)
 
-        #region Properties (1)
+        #region Properties (2)
 
         /// <summary>
         /// Gets the request context.
@@ -71,6 +71,6 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             private set;
         }
 
-        #endregion Properties (1)
+        #endregion Properties (2)
     }
 }

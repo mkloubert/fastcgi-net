@@ -39,7 +39,7 @@ namespace MarcelJoachimKloubert.FastCGI
         /// <summary>
         /// Handles the connection with a TCP client.
         /// </summary>
-        public class TcpClientConnectionHandler : IDisposable
+        public class TcpClientConnectionHandler : FastCGIObject, IDisposable
         {
             #region Fields (2)
 

@@ -27,43 +27,72 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-using System;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace MarcelJoachimKloubert.FastCGI.Http
+namespace MarcelJoachimKloubert.FastCGI.Helpers
 {
     /// <summary>
-    /// Describes a HTTP request context.
+    /// Helper class for collection operations.
     /// </summary>
-    public interface IHttpRequest
+    public static class CollectionHelper
     {
-        #region Properties (5)
+        #region Methods (2)
 
         /// <summary>
-        /// Gets the underlying FastCGI context.
+        /// Adds or sets a value for a dictionary.
         /// </summary>
-        IRequestContext Context { get; }
+        /// <typeparam name="TKey">Type of the keys.</typeparam>
+        /// <typeparam name="TValue">Type of the values.</typeparam>
+        /// <param name="dict">The dictionary.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// <see langword="true" /> if <paramref name="value" /> was added or <see langword="false" /> if it was set.
+        /// <see langword="null" /> indicates that <paramref name="dict" /> is <see langword="null" />.
+        /// </returns>
+        public static bool? AddOrSet<TKey, TValue>(IDictionary<TKey, TValue> dict, TKey key, TValue value)
+        {
+            if (dict == null)
+            {
+                return null;
+            }
+
+            if (!dict.ContainsKey(key))
+            {
+                dict.Add(key, value);
+                return true;
+            }
+
+            dict[key] = value;
+            return false;
+        }
 
         /// <summary>
-        /// Gets the list of headers.
+        /// Returns a sequence as array.
         /// </summary>
-        IDictionary<string, string> Headers { get; }
+        /// <param name="seq">The input sequence.</param>
+        /// <param name="nullAsEmpty">
+        /// Return an empty array if <paramref name="seq" /> is <see langword="null" /> (<see langword="true" />)
+        /// or <see langword="null" /> instead (<see langword="false" />).
+        /// </param>
+        /// <returns>The output value.</returns>
+        public static T[] AsArray<T>(IEnumerable<T> seq, bool nullAsEmpty = false)
+        {
+            if (seq == null)
+            {
+                return !nullAsEmpty ? null : new T[0];
+            }
 
-        /// <summary>
-        /// Gets the uppercase name of the HTTP method.
-        /// </summary>
-        string Method { get; }
+            var result = seq as T[];
+            if (result == null)
+            {
+                result = seq.ToArray();
+            }
 
-        /// <summary>
-        /// Gets the list of variables from the query string.
-        /// </summary>
-        IDictionary<string, string> Query { get; }
+            return result;
+        }
 
-        /// <summary>
-        /// Gets the request uri.
-        /// </summary>
-        Uri Uri { get; }
-
-        #endregion Properties (5)
+        #endregion Methods (2)
     }
 }

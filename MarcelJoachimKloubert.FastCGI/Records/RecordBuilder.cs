@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Helpers;
 using System;
 using System.IO;
 
@@ -35,7 +36,7 @@ namespace MarcelJoachimKloubert.FastCGI.Records
     /// <summary>
     /// Builds FastCGI recors.
     /// </summary>
-    public class RecordBuilder
+    public class RecordBuilder : FastCGIObject
     {
         #region Fields (5)
 
