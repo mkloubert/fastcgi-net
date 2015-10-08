@@ -36,7 +36,7 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public interface ISettings
     {
-        #region Properties (8)
+        #region Properties (9)
 
         /// <summary>
         /// Gets the handler to use.
@@ -59,6 +59,11 @@ namespace MarcelJoachimKloubert.FastCGI
         long? MaxBodyLength { get; }
 
         /// <summary>
+        /// Gets the maximum number of requests a client can open inside one connection.
+        /// </summary>
+        int? MaxRequestsByConnection { get; }
+
+        /// <summary>
         /// Creates the stream that is used to store the response body.
         /// </summary>
         StreamFactory OutputStreamFactory { get; }
@@ -79,6 +84,6 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         int? WriteBufferSize { get; }
 
-        #endregion Properties (8)
+        #endregion Properties (9)
     }
 }

@@ -80,7 +80,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
 
             #endregion Constructors (1)
 
-            #region Properties (9)
+            #region Properties (11)
 
             /// <summary>
             /// <see cref="IHttpRequest.Context" />
@@ -145,6 +145,19 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             public IDictionary<string, string> QueryVars { get; protected set; }
 
             /// <summary>
+            /// <see cref="IHttpRequest.RemoteAddress" />
+            /// </summary>
+            public IPEndPoint RemoteAddress { get; protected set; }
+
+            /// <summary>
+            /// <see cref="IHttpRequest.RequestUri" />
+            /// </summary>
+            public string RequestUri
+            {
+                get { return this.Uri != null ? this.Uri.PathAndQuery : null; }
+            }
+
+            /// <summary>
             /// <see cref="IHttpRequest.QueryVars" />
             /// </summary>
             public IList<string> SupportedMethods { get; protected set; }
@@ -154,7 +167,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             /// </summary>
             public Uri Uri { get; protected set; }
 
-            #endregion Properties (9)
+            #endregion Properties (11)
 
             #region Methods (4)
 
@@ -309,18 +322,24 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                 var headers = new Dictionary<string, string>(new CaseInsensitiveStringComparer());
                 var queryVars = new Dictionary<string, string>(new CaseInsensitiveStringComparer());
                 string method = null;
+                IPEndPoint remoteAddress = null;
 
                 if (this.Context.Parameters != null)
                 {
                     var @params = this.Context.Parameters.Parameters;
                     if (@params != null)
                     {
+                        string remoteClientAddr = null;
+                        int? remoteClientPort = null;
+
                         foreach (var entry in @params)
                         {
                             var key = (entry.Key ?? string.Empty).ToUpper().Trim();
 
                             if (key.StartsWith("HTTP_"))
                             {
+                                // HTTP header
+
                                 var headerName = key.Substring(5).ToLower().Trim();
                                 headerName = headerName.Replace('_', '-')
                                                        .Replace("\t", "    ")
@@ -339,6 +358,8 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                             }
                             else if (key == "QUERY_STRING")
                             {
+                                // query string
+
                                 var queryString = Encoding.UTF8.GetString(entry.Value ?? new byte[0]).TrimStart();
                                 if (!string.IsNullOrWhiteSpace(queryString))
                                 {
@@ -347,7 +368,25 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                             }
                             else if (key == "REQUEST_METHOD")
                             {
+                                // HTTP request method
+
                                 method = Encoding.ASCII.GetString(entry.Value ?? new byte[0]);
+                            }
+                            else if (key == "REMOTE_ADDR")
+                            {
+                                // remote IP
+
+                                remoteClientAddr = Encoding.ASCII.GetString(entry.Value ?? new byte[0]);
+                            }
+                            else if (key == "REMOTE_PORT")
+                            {
+                                // remote port
+
+                                int port;
+                                if (int.TryParse(Encoding.ASCII.GetString(entry.Value ?? new byte[0]).Trim(), out port))
+                                {
+                                    remoteClientPort = port;
+                                }
                             }
                         }
 
@@ -408,6 +447,18 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                                 this.Uri = newUri;
                             }
                         }
+
+                        if (!string.IsNullOrWhiteSpace(remoteClientAddr) && remoteClientPort.HasValue)
+                        {
+                            if ((remoteClientPort >= IPEndPoint.MinPort) && (remoteClientPort <= IPEndPoint.MaxPort))
+                            {
+                                IPAddress remoteClientIP;
+                                if (IPAddress.TryParse(remoteClientAddr.Trim(), out remoteClientIP))
+                                {
+                                    remoteAddress = new IPEndPoint(remoteClientIP, remoteClientPort.Value);
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -443,6 +494,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                 this.Headers = new ReadOnlyDictionary<string, string>(headers);
                 this.Method = method;
                 this.QueryVars = new ReadOnlyDictionary<string, string>(queryVars);
+                this.RemoteAddress = remoteAddress ?? this.Context.Client.Address;
                 this.SupportedMethods = new List<string>();
             }
 

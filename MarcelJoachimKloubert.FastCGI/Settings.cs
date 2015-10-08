@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using System;
 using System.Net;
 
 namespace MarcelJoachimKloubert.FastCGI
@@ -36,14 +37,19 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public class Settings : FastCGIObject, ISettings
     {
-        #region Fields (1)
+        #region Fields (5)
+
+        private int _port;
+        private long? _maxBodyLength;
+        private int? _maxRequestsByConnection;
+        private int? _writeBufferSize;
 
         /// <summary>
         /// Stores the default TCP port.
         /// </summary>
         public int DEFAULT_PORT = 9001;
 
-        #endregion Fields (1)
+        #endregion Fields (5)
 
         #region Constructors (1)
 
@@ -52,12 +58,17 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         public Settings()
         {
+            // 8 MB
+            this.MaxBodyLength = 8 * 1024 * 1024;
+
+            this.MaxRequestsByConnection = 64;
+
             this.Port = DEFAULT_PORT;
         }
 
         #endregion Constructors (1)
 
-        #region Properties (6)
+        #region Properties (8)
 
         /// <summary>
         /// <see cref="ISettings.LocalAddress" />
@@ -77,7 +88,40 @@ namespace MarcelJoachimKloubert.FastCGI
         /// <summary>
         /// <see cref="ISettings.MaxBodyLength" />
         /// </summary>
-        public long? MaxBodyLength { get; set; }
+        public long? MaxBodyLength
+        {
+            get { return this._maxBodyLength; }
+
+            set
+            {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException("value", value,
+                                                          "Must be 0 at least!");
+                }
+
+                this._maxBodyLength = value;
+            }
+        }
+
+        /// <summary>
+        /// <see cref="ISettings.MaxRequestsByConnection" />
+        /// </summary>
+        public int? MaxRequestsByConnection
+        {
+            get { return this._maxRequestsByConnection; }
+
+            set
+            {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException("value", value,
+                                                          "Must be 0 at least!");
+                }
+
+                this._maxRequestsByConnection = value;
+            }
+        }
 
         /// <summary>
         /// <see cref="ISettings.OutputStreamFactory" />
@@ -87,13 +131,42 @@ namespace MarcelJoachimKloubert.FastCGI
         /// <summary>
         /// <see cref="ISettings.Port" />
         /// </summary>
-        public int Port { get; set; }
+        public int Port
+        {
+            get { return this._port; }
+
+            set
+            {
+                if ((value < IPEndPoint.MinPort) || (value > IPEndPoint.MaxPort))
+                {
+                    throw new ArgumentOutOfRangeException("value", value,
+                                                          string.Format("Allowed values are between {0} and {1}!",
+                                                                        IPEndPoint.MinPort, IPEndPoint.MaxPort));
+                }
+
+                this._port = value;
+            }
+        }
 
         /// <summary>
         /// <see cref="ISettings.WriteBufferSize" />
         /// </summary>
-        public int? WriteBufferSize { get; set; }
+        public int? WriteBufferSize
+        {
+            get { return this._writeBufferSize; }
 
-        #endregion Properties (6)
+            set
+            {
+                if (value < 1)
+                {
+                    throw new ArgumentOutOfRangeException("value", value,
+                                                          "Must be 1 at least!");
+                }
+
+                this._writeBufferSize = value;
+            }
+        }
+
+        #endregion Properties (8)
     }
 }

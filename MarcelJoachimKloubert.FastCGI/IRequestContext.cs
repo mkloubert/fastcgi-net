@@ -38,12 +38,17 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public interface IRequestContext
     {
-        #region Properties (4)
+        #region Properties (5)
 
         /// <summary>
         /// Gets the server address.
         /// </summary>
         IPAddress Address { get; }
+
+        /// <summary>
+        /// Gets the requesting FastCGI client.
+        /// </summary>
+        IClient Client { get; }
 
         /// <summary>
         /// Gets the parameters.
@@ -60,7 +65,7 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         ISettings Settings { get; }
 
-        #endregion Properties (4)
+        #endregion Properties (5)
 
         #region Methods (6)
 

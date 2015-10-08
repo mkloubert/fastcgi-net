@@ -56,10 +56,11 @@ namespace MarcelJoachimKloubert.FastCGI
             /// </summary>
             /// <param name="handler">The underlying client connection handler.</param>
             /// <param name="record">The value for the <see cref="RequestHandler.BaseRecord" /> property.</param>
+            /// <param name="level">The value for the <see cref="RequestHandler.Level" /> property.</param>
             /// <exception cref="ArgumentNullException">
             /// At least one parameter is <see langword="null" />.
             /// </exception>
-            public RequestHandler(TcpClientConnectionHandler handler, BeginRequestRecord record)
+            public RequestHandler(TcpClientConnectionHandler handler, BeginRequestRecord record, int level)
             {
                 if (handler == null)
                 {
@@ -71,8 +72,9 @@ namespace MarcelJoachimKloubert.FastCGI
                     throw new ArgumentNullException("record");
                 }
 
-                this.Handler = handler;
                 this.BaseRecord = record;
+                this.Level = level;
+                this.Handler = handler;
 
                 this._CONTEXT = new RequestContext(this);
                 this._CONTEXT.Address = this.Server._SETTINGS.LocalAddress ?? IPAddress.Loopback;
@@ -99,7 +101,7 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Constructors (1)
 
-            #region Properties (6)
+            #region Properties (7)
 
             /// <summary>
             /// Gets the base record.
@@ -129,6 +131,15 @@ namespace MarcelJoachimKloubert.FastCGI
             }
 
             /// <summary>
+            /// Gets the current level.
+            /// </summary>
+            public int Level
+            {
+                get;
+                private set;
+            }
+
+            /// <summary>
             /// Gets the ID of the request.
             /// </summary>
             public ushort RequestId
@@ -152,7 +163,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 get { return this.Handler.Stream; }
             }
 
-            #endregion Properties (6)
+            #endregion Properties (7)
 
             #region Methods (7)
 
@@ -314,7 +325,12 @@ namespace MarcelJoachimKloubert.FastCGI
                 {
                     if (request is BeginRequestRecord)
                     {
-                        this.Handler.BeginRequest(request as BeginRequestRecord);
+                        if (this.Level >= this.Server._SETTINGS.MaxRequestsByConnection)
+                        {
+                            return false;
+                        }
+
+                        this.Handler.BeginRequest(request as BeginRequestRecord, this.Level + 1);
                         return true;
                     }
 

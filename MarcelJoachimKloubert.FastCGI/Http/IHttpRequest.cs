@@ -29,6 +29,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace MarcelJoachimKloubert.FastCGI.Http
 {
@@ -37,7 +38,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
     /// </summary>
     public interface IHttpRequest
     {
-        #region Properties (9)
+        #region Properties (11)
 
         /// <summary>
         /// Gets the underlying FastCGI context.
@@ -75,6 +76,16 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         IDictionary<string, string> QueryVars { get; }
 
         /// <summary>
+        /// Gets the address of the requesting client.
+        /// </summary>
+        IPEndPoint RemoteAddress { get; }
+
+        /// <summary>
+        /// Gets the unparsed request URI.
+        /// </summary>
+        string RequestUri { get; }
+
+        /// <summary>
         /// Gets a list of supported methods. That list can be changed for the response.
         /// </summary>
         IList<string> SupportedMethods { get; }
@@ -84,6 +95,6 @@ namespace MarcelJoachimKloubert.FastCGI.Http
         /// </summary>
         Uri Uri { get; }
 
-        #endregion Properties (9)
+        #endregion Properties (11)
     }
 }

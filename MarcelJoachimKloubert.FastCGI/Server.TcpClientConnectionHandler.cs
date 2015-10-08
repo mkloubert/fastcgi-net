@@ -143,11 +143,12 @@ namespace MarcelJoachimKloubert.FastCGI
             /// Begins a request.
             /// </summary>
             /// <param name="record">The record.</param>
-            public void BeginRequest(BeginRequestRecord record)
+            /// <param name="level">The level.</param>
+            public void BeginRequest(BeginRequestRecord record, int level = 0)
             {
                 this.CloseConnection = record.CloseConnection ?? true;
 
-                var handler = new RequestHandler(this, record);
+                var handler = new RequestHandler(this, record, level);
                 handler.HandleNext();
             }
 

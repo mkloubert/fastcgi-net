@@ -63,7 +63,7 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Events (1)
 
-            #region Properties (7)
+            #region Properties (8)
 
             public IPAddress Address
             {
@@ -75,6 +75,11 @@ namespace MarcelJoachimKloubert.FastCGI
             {
                 get;
                 set;
+            }
+
+            public IClient Client
+            {
+                get { return this.Handler.Handler.RemoteClient; }
             }
 
             internal RequestHandler Handler
@@ -153,7 +158,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 set;
             }
 
-            #endregion Properties (7)
+            #endregion Properties (8)
 
             #region Methods (6)
 
