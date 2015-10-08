@@ -30,6 +30,7 @@
 using MarcelJoachimKloubert.FastCGI.Records;
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
@@ -163,17 +164,18 @@ namespace MarcelJoachimKloubert.FastCGI
                 {
                     try
                     {
-                        using (this.Stream)
+                        try
                         {
-                            this.Stream.Close();
-
-                            this.Server
-                                .RaiseClientDisconnected(this.Handler.RemoteClient);
+                            this.Handler.Dispose();
                         }
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // ignore
+                        finally
+                        {
+                            if (!this.Handler.RemoteClient.Client.Connected)
+                            {
+                                this.Server
+                                    .RaiseClientDisconnected(this.Handler.RemoteClient);
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -208,6 +210,85 @@ namespace MarcelJoachimKloubert.FastCGI
                 foreach (var request in UnknownRecord.FromStream(this.Stream))
                 {
                     this.InvokeForRequest(request);
+                }
+            }
+
+            /// <summary>
+            /// Handles input data from client.
+            /// </summary>
+            /// <param name="record">The underlying record.</param>
+            protected void HandleInputData(InputRecord record)
+            {
+                var maxBodyLen = this.Server._SETTINGS.MaxBodyLength;
+                if (maxBodyLen < 0)
+                {
+                    maxBodyLen = 0;
+                }
+
+                var dataToWriteCount = record.Data.Length;
+                if (maxBodyLen.HasValue)
+                {
+                    if ((this._CONTEXT.BodyStream.Length + dataToWriteCount) > maxBodyLen)
+                    {
+                        // truncate
+                        dataToWriteCount = (int)(maxBodyLen.Value - this._CONTEXT.BodyStream.Length);
+                    }
+                }
+
+                if (dataToWriteCount > 0)
+                {
+                    var dataToWrite = record.Data;
+                    if (dataToWrite.Length > dataToWriteCount)
+                    {
+                        dataToWrite = dataToWrite.Take(dataToWriteCount).ToArray();
+                    }
+
+                    using (var temp = new MemoryStream(dataToWrite, false))
+                    {
+                        if (!this._CONTEXT.WriteBufferSize.HasValue)
+                        {
+                            temp.CopyTo(this._CONTEXT.BodyStream);
+                        }
+                        else
+                        {
+                            temp.CopyTo(this._CONTEXT.BodyStream, this._CONTEXT.WriteBufferSize.Value);
+                        }
+                    }
+                }
+                else
+                {
+                    var handler = this.Server._SETTINGS.Handler;
+                    if (handler != null)
+                    {
+                        handler.HandleRequest(this._CONTEXT);
+                    }
+                    else
+                    {
+                        this._CONTEXT.End();
+                    }
+
+                    if (!this.HasEnded)
+                    {
+                        this.HandleNext();
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Handles parameters.
+            /// </summary>
+            /// <param name="record">The underlying record.</param>
+            protected void HandleParameters(ParameterRecord record)
+            {
+                try
+                {
+                    this._CONTEXT.Parameters = record.Parameters;
+
+                    this.HandleNext();
+                }
+                catch (Exception ex)
+                {
+                    this.RaiseError(ex);
                 }
             }
 
@@ -267,60 +348,6 @@ namespace MarcelJoachimKloubert.FastCGI
                 }
 
                 return false;
-            }
-
-            /// <summary>
-            /// Handles input data from client.
-            /// </summary>
-            /// <param name="record">The underlying record.</param>
-            protected void HandleInputData(InputRecord record)
-            {
-                if (record.Data.LongLength > 0)
-                {
-                    using (var temp = new MemoryStream(record.Data, false))
-                    {
-                        if (!this._CONTEXT.WriteBufferSize.HasValue)
-                        {
-                            temp.CopyTo(this._CONTEXT.BodyStream);
-                        }
-                        else
-                        {
-                            temp.CopyTo(this._CONTEXT.BodyStream, this._CONTEXT.WriteBufferSize.Value);
-                        }
-                    }
-
-                    this.HandleNext();
-                }
-                else
-                {
-                    var handler = this.Server._SETTINGS.Handler;
-                    if (handler != null)
-                    {
-                        handler.HandleRequest(this._CONTEXT);
-                    }
-                    else
-                    {
-                        this._CONTEXT.End();
-                    }
-                }
-            }
-
-            /// <summary>
-            /// Handles parameters.
-            /// </summary>
-            /// <param name="record">The underlying record.</param>
-            protected void HandleParameters(ParameterRecord record)
-            {
-                try
-                {
-                    this._CONTEXT.Parameters = record.Parameters;
-
-                    this.HandleNext();
-                }
-                catch (Exception ex)
-                {
-                    this.RaiseError(ex);
-                }
             }
 
             /// <summary>

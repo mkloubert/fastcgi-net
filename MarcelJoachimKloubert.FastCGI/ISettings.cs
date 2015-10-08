@@ -36,7 +36,7 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public interface ISettings
     {
-        #region Properties (7)
+        #region Properties (8)
 
         /// <summary>
         /// Gets the handler to use.
@@ -52,6 +52,11 @@ namespace MarcelJoachimKloubert.FastCGI
         /// Gets the local address for the server.
         /// </summary>
         IPAddress LocalAddress { get; }
+
+        /// <summary>
+        /// Gets the maximum body length in bytes.
+        /// </summary>
+        long? MaxBodyLength { get; }
 
         /// <summary>
         /// Creates the stream that is used to store the response body.
@@ -74,6 +79,6 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         int? WriteBufferSize { get; }
 
-        #endregion Properties (7)
+        #endregion Properties (8)
     }
 }

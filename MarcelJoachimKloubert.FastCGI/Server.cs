@@ -39,9 +39,9 @@ namespace MarcelJoachimKloubert.FastCGI
     /// <summary>
     /// A FastCGI server.
     /// </summary>
-    public partial class Server : FastCGIObject, IDisposable
+    public partial class Server : DisposableBase
     {
-        #region Fields (3)
+        #region Fields (2)
 
         /// <summary>
         /// The current TCP listener.
@@ -53,12 +53,7 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         protected ISettings _SETTINGS;
 
-        /// <summary>
-        /// An object for thread safe operations.
-        /// </summary>
-        protected readonly object _SYNC;
-
-        #endregion Fields (3)
+        #endregion Fields (2)
 
         #region Constructors (1)
 
@@ -67,23 +62,14 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         /// <param name="settings">The custom settings.</param>
         public Server(ISettings settings = null)
+            : base(sync: settings != null ? settings.SyncRoot : null)
         {
             this._SETTINGS = settings ?? new Settings();
-
-            this._SYNC = this._SETTINGS.SyncRoot ?? new object();
-        }
-
-        /// <summary>
-        /// The destructor.
-        /// </summary>
-        ~Server()
-        {
-            this.Dispose(false);
         }
 
         #endregion Constructors (1)
 
-        #region Events (10)
+        #region Events (8)
 
         /// <summary>
         /// Is raised when a client has been connected.
@@ -94,16 +80,6 @@ namespace MarcelJoachimKloubert.FastCGI
         /// Is raised after the connection with a client has been closed.
         /// </summary>
         public event EventHandler<ClientEventArgs> Disconnected;
-
-        /// <summary>
-        /// Is raised when server begins disposing itself.
-        /// </summary>
-        public event EventHandler Disposing;
-
-        /// <summary>
-        /// Is raised when the server has been disposed.
-        /// </summary>
-        public event EventHandler Disposed;
 
         /// <summary>
         /// Is raised on an error.
@@ -135,18 +111,9 @@ namespace MarcelJoachimKloubert.FastCGI
         /// </summary>
         public event EventHandler<ValidateClientEventArgs> ValidateClient;
 
-        #endregion Events (10)
+        #endregion Events (8)
 
-        #region Properties (3)
-
-        /// <summary>
-        /// Gets if the server has been disposed (<see langword="true" />) or not (<see langword="false" />).
-        /// </summary>
-        public bool IsDisposed
-        {
-            get;
-            private set;
-        }
+        #region Properties (1)
 
         /// <summary>
         /// Gets if the server is running (<see langword="true" />) or not (<see langword="false" />).
@@ -157,17 +124,9 @@ namespace MarcelJoachimKloubert.FastCGI
             private set;
         }
 
-        /// <summary>
-        /// Gets the object that is used for thread safe operations.
-        /// </summary>
-        public object SyncRoot
-        {
-            get { return this._SYNC; }
-        }
+        #endregion Properties (1)
 
-        #endregion Properties (3)
-
-        #region Methods (18)
+        #region Methods (15)
 
         /// <summary>
         /// Starts listening for a TCP client connection.
@@ -289,47 +248,6 @@ namespace MarcelJoachimKloubert.FastCGI
         }
 
         /// <summary>
-        /// <see cref="IDisposable.Dispose()" />
-        /// </summary>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool disposing)
-        {
-            lock (this._SYNC)
-            {
-                if (disposing && this.IsDisposed)
-                {
-                    return;
-                }
-
-                try
-                {
-                    if (disposing)
-                    {
-                        this.RaiseEventHandler(this.Disposing);
-                    }
-
-                    var isDisposed = disposing ? true : this.IsDisposed;
-                    this.OnDispose(disposing, ref isDisposed);
-
-                    this.IsDisposed = isDisposed;
-                    if (this.IsDisposed)
-                    {
-                        this.RaiseEventHandler(this.Disposed);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    this.RaiseError(ex, disposing);
-                }
-            }
-        }
-
-        /// <summary>
         /// The async callback for <see cref="Server.BeginAcceptingTcpClient(TcpListener, bool)" /> method.
         /// </summary>
         /// <param name="ar">The async result.</param>
@@ -396,21 +314,24 @@ namespace MarcelJoachimKloubert.FastCGI
         }
 
         /// <summary>
-        /// The logic for the <see cref="Server.Dispose()" /> method or the destructor.
+        /// <see cref="DisposableBase.OnDispose(bool, ref bool)" />
         /// </summary>
-        /// <param name="disposing">
-        /// <see cref="Server.Dispose()" /> method was invoked (<see langword="true" />)
-        /// or the destructor (<see langword="false" />).
-        /// </param>
-        /// <param name="isDisposed">
-        /// The new value for <see cref="Server.IsDisposed" /> property.
-        /// </param>
-        protected virtual void OnDispose(bool disposing, ref bool isDisposed)
+        protected override void OnDispose(bool disposing, ref bool isDisposed)
         {
-            var isRunning = false;
-            this.OnStop(disposing, ref isRunning);
+            try
+            {
+                var isRunning = false;
+                this.OnStop(disposing, ref isRunning);
 
-            this.IsRunning = isRunning;
+                this.IsRunning = isRunning;
+            }
+            catch (Exception ex)
+            {
+                if (disposing)
+                {
+                    this.RaiseError(ex);
+                }
+            }
         }
 
         /// <summary>
@@ -435,7 +356,7 @@ namespace MarcelJoachimKloubert.FastCGI
         /// The logic for the <see cref="Server.Stop()" /> method.
         /// </summary>
         /// <param name="disposing">
-        /// <see cref="Server.Dispose()" /> method was invoked (<see langword="true" />)
+        /// <see cref="DisposableBase.Dispose()" /> method was invoked (<see langword="true" />)
         /// or the destructor (<see langword="false" />).
         /// <see langword="null" /> indicates that <see cref="Server.Stop()" /> method was invoked.
         /// </param>
@@ -642,18 +563,6 @@ namespace MarcelJoachimKloubert.FastCGI
             }
         }
 
-        /// <summary>
-        /// Throws an exception if that object has been disposed.
-        /// </summary>
-        /// <exception cref="ObjectDisposedException">Object has been disposed.</exception>
-        protected void ThrowIfDisposed()
-        {
-            if (this.IsDisposed)
-            {
-                throw new ObjectDisposedException(this.GetType().FullName);
-            }
-        }
-
-        #endregion Methods (18)
+        #endregion Methods (15)
     }
 }

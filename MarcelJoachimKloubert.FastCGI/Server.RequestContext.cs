@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Collections;
 using MarcelJoachimKloubert.FastCGI.Helpers;
 using MarcelJoachimKloubert.FastCGI.Records;
 using System;
@@ -62,7 +63,7 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Events (1)
 
-            #region Properties (6)
+            #region Properties (7)
 
             public IPAddress Address
             {
@@ -107,10 +108,10 @@ namespace MarcelJoachimKloubert.FastCGI
                     {
                         // merge old with new
 
-                        var curParams = this._parameters.Parameters ?? new Dictionary<string, byte[]>(new CaseInsensitiveComparer());
+                        var curParams = this._parameters.Parameters ?? new Dictionary<string, byte[]>(new CaseInsensitiveStringComparer());
 
                         var newParams = new RequestParameters();
-                        newParams.Parameters = new Dictionary<string, byte[]>(curParams, new CaseInsensitiveComparer());
+                        newParams.Parameters = new Dictionary<string, byte[]>(curParams, new CaseInsensitiveStringComparer());
 
                         foreach (var entry in @params)
                         {
@@ -141,13 +142,18 @@ namespace MarcelJoachimKloubert.FastCGI
                 set;
             }
 
+            public ISettings Settings
+            {
+                get { return this.Handler.Server._SETTINGS; }
+            }
+
             internal int? WriteBufferSize
             {
                 get;
                 set;
             }
 
-            #endregion Properties (6)
+            #endregion Properties (7)
 
             #region Methods (6)
 

@@ -29,9 +29,9 @@
 
 using System.Collections.Generic;
 
-namespace MarcelJoachimKloubert.FastCGI
+namespace MarcelJoachimKloubert.FastCGI.Collections
 {
-    internal class CaseInsensitiveComparer : FastCGIObject, IEqualityComparer<string>, IComparer<string>
+    internal class CaseInsensitiveStringComparer : FastCGIObject, IEqualityComparer<string>, IComparer<string>
     {
         #region Methods (4)
 
@@ -50,9 +50,9 @@ namespace MarcelJoachimKloubert.FastCGI
             return NormalizeString(obj).GetHashCode();
         }
 
-        internal static string NormalizeString(string key)
+        internal static string NormalizeString(string str)
         {
-            return (key ?? string.Empty).ToUpper().Trim();
+            return (str ?? string.Empty).ToUpper().Trim();
         }
 
         #endregion Methods (4)

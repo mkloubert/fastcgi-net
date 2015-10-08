@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Collections;
 using MarcelJoachimKloubert.FastCGI.Helpers;
 using Newtonsoft.Json;
 using System;
@@ -206,7 +207,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             /// </summary>
             protected virtual void OnInit()
             {
-                this.Headers = new Dictionary<string, string>(new CaseInsensitiveComparer());
+                this.Headers = new Dictionary<string, string>(new CaseInsensitiveStringComparer());
             }
 
             /// <summary>

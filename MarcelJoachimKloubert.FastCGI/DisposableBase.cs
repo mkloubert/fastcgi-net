@@ -27,73 +27,135 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
-using System.Net;
+using System;
 
 namespace MarcelJoachimKloubert.FastCGI
 {
     /// <summary>
-    /// Settings.
+    /// A basic disposable object (thread safe).
     /// </summary>
-    public class Settings : FastCGIObject, ISettings
+    public abstract class DisposableBase : FastCGIObject, IDisposable
     {
-        #region Fields (1)
+        #region Constructors (2)
 
         /// <summary>
-        /// Stores the default TCP port.
+        /// Initializes a new instance of the <see cref="DisposableBase" /> class.
         /// </summary>
-        public int DEFAULT_PORT = 9001;
-
-        #endregion Fields (1)
-
-        #region Constructors (1)
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="Settings" /> class.
-        /// </summary>
-        public Settings()
+        /// <param name="sync">
+        /// The custom value for the <see cref="FastCGIObject._SYNC" /> field.
+        /// </param>
+        protected DisposableBase(object sync = null)
+            : base(sync: sync)
         {
-            this.Port = DEFAULT_PORT;
         }
 
-        #endregion Constructors (1)
+        /// <summary>
+        /// Frees the <see cref="DisposableBase" /> object.
+        /// </summary>
+        ~DisposableBase()
+        {
+            this.Dispose(false);
+        }
 
-        #region Properties (6)
+        #endregion Constructors (2)
+
+        #region Events (2)
 
         /// <summary>
-        /// <see cref="ISettings.LocalAddress" />
+        /// Is raised when object begins disposing itself.
         /// </summary>
-        public IRequestHandler Handler { get; set; }
+        public event EventHandler Disposing;
 
         /// <summary>
-        /// <see cref="ISettings.InputStreamFactory" />
+        /// Is raised when the object has been disposed.
         /// </summary>
-        public StreamFactory InputStreamFactory { get; set; }
+        public event EventHandler Disposed;
+
+        #endregion Events (2)
+
+        #region Properties (1)
 
         /// <summary>
-        /// <see cref="ISettings.LocalAddress" />
+        /// Gets if the object has been disposed (<see langword="true" />) or not (<see langword="false" />).
         /// </summary>
-        public IPAddress LocalAddress { get; set; }
+        public bool IsDisposed
+        {
+            get;
+            private set;
+        }
+
+        #endregion Properties (1)
+
+        #region Methods (4)
 
         /// <summary>
-        /// <see cref="ISettings.MaxBodyLength" />
+        /// <see cref="IDisposable.Dispose()" />
         /// </summary>
-        public long? MaxBodyLength { get; set; }
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            lock (this._SYNC)
+            {
+                if (disposing && this.IsDisposed)
+                {
+                    return;
+                }
+
+                try
+                {
+                    if (disposing)
+                    {
+                        this.RaiseEventHandler(this.Disposing);
+                    }
+
+                    var isDisposed = disposing ? true : this.IsDisposed;
+                    this.OnDispose(disposing, ref isDisposed);
+
+                    this.IsDisposed = isDisposed;
+                    if (this.IsDisposed)
+                    {
+                        this.RaiseEventHandler(this.Disposed);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (disposing)
+                    {
+                        throw ex;
+                    }
+                }
+            }
+        }
 
         /// <summary>
-        /// <see cref="ISettings.OutputStreamFactory" />
+        /// The logic for the <see cref="DisposableBase.Dispose()" /> method or the destructor.
         /// </summary>
-        public StreamFactory OutputStreamFactory { get; set; }
+        /// <param name="disposing">
+        /// <see cref="DisposableBase.Dispose()" /> method was invoked (<see langword="true" />)
+        /// or the destructor (<see langword="false" />).
+        /// </param>
+        /// <param name="isDisposed">
+        /// The new value for <see cref="DisposableBase.IsDisposed" /> property.
+        /// </param>
+        protected abstract void OnDispose(bool disposing, ref bool isDisposed);
 
         /// <summary>
-        /// <see cref="ISettings.Port" />
+        /// Throws an exception if that object has been disposed.
         /// </summary>
-        public int Port { get; set; }
+        /// <exception cref="ObjectDisposedException">Object has been disposed.</exception>
+        protected void ThrowIfDisposed()
+        {
+            if (this.IsDisposed)
+            {
+                throw new ObjectDisposedException(this.GetType().FullName);
+            }
+        }
 
-        /// <summary>
-        /// <see cref="ISettings.WriteBufferSize" />
-        /// </summary>
-        public int? WriteBufferSize { get; set; }
-
-        #endregion Properties (6)
+        #endregion Methods (4)
     }
 }

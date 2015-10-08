@@ -31,7 +31,7 @@ using MarcelJoachimKloubert.FastCGI.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using ServerRequestParameterComparer = MarcelJoachimKloubert.FastCGI.CaseInsensitiveComparer;
+using ServerRequestParameterComparer = MarcelJoachimKloubert.FastCGI.Collections.CaseInsensitiveStringComparer;
 using ServerRequestParameters = MarcelJoachimKloubert.FastCGI.Server.RequestParameters;
 
 namespace MarcelJoachimKloubert.FastCGI.Records

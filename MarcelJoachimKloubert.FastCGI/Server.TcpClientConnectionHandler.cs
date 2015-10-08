@@ -38,7 +38,7 @@ namespace MarcelJoachimKloubert.FastCGI
         /// <summary>
         /// Handles the connection with a TCP client.
         /// </summary>
-        public class TcpClientConnectionHandler : FastCGIObject, IDisposable
+        public class TcpClientConnectionHandler : DisposableBase
         {
             #region Fields (3)
 
@@ -59,7 +59,7 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Fields (3)
 
-            #region Constructors (2)
+            #region Constructors (1)
 
             /// <summary>
             /// Initializes a new instance of the <see cref="TcpClientConnectionHandler" /> class.
@@ -89,7 +89,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 this.CloseConnection = true;
             }
 
-            #endregion Constructors (2)
+            #endregion Constructors (1)
 
             #region Properties (6)
 
@@ -137,7 +137,7 @@ namespace MarcelJoachimKloubert.FastCGI
 
             #endregion Properties (6)
 
-            #region Methods (6)
+            #region Methods (5)
 
             /// <summary>
             /// Begins a request.
@@ -149,14 +149,6 @@ namespace MarcelJoachimKloubert.FastCGI
 
                 var handler = new RequestHandler(this, record);
                 handler.HandleNext();
-            }
-
-            /// <summary>
-            /// <see cref="IDisposable.Dispose()" />
-            /// </summary>
-            public void Dispose()
-            {
-                this.OnDispose(true);
             }
 
             /// <summary>
@@ -205,17 +197,20 @@ namespace MarcelJoachimKloubert.FastCGI
             }
 
             /// <summary>
-            /// The logic for the <see cref="TcpClientConnectionHandler.Dispose()" /> method or the destructor.
+            /// <see cref="DisposableBase.OnDispose(bool, ref bool)" />
             /// </summary>
-            /// <param name="disposing">
-            /// <see cref="TcpClientConnectionHandler.Dispose()" /> method was invoked (<see langword="true" />)
-            /// or the destructor (<see langword="false" />).
-            /// </param>
-            protected void OnDispose(bool disposing)
+            protected override void OnDispose(bool disposing, ref bool isDisposed)
             {
                 try
                 {
-                    this.Stream.Dispose();
+                    using (this.Stream)
+                    {
+                        this.Stream.Close();
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // ignore
                 }
                 catch (Exception ex)
                 {
@@ -231,7 +226,7 @@ namespace MarcelJoachimKloubert.FastCGI
                 return this.Server.RaiseError(ex, rethrow);
             }
 
-            #endregion Methods (6)
+            #endregion Methods (5)
         }
     }
 }

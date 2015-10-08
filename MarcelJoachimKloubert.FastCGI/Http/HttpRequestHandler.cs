@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Collections;
 using MarcelJoachimKloubert.FastCGI.Helpers;
 using System;
 using System.Collections.Generic;
@@ -524,7 +525,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
                 {
                     try
                     {
-                        var forcedHeaders = new Dictionary<string, string>(new CaseInsensitiveComparer());
+                        var forcedHeaders = new Dictionary<string, string>(new CaseInsensitiveStringComparer());
                         forcedHeaders.Add(HEADER_X_POWERED_BY, "fastcgi-net");
 
                         var status = string.Format("{0}{1}",

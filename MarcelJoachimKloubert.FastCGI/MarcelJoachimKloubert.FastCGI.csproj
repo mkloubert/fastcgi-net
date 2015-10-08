@@ -54,9 +54,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Collections\DictionaryWrapperBase.cs" />
+    <Compile Include="DisposableBase.cs" />
     <Compile Include="FastCGIObject.cs" />
     <Compile Include="Helpers\BitHelper.cs" />
-    <Compile Include="CaseInsensitiveComparer.cs" />
+    <Compile Include="Collections\CaseInsensitiveStringComparer.cs" />
     <Compile Include="Collections\ReadOnlyDictionary.cs" />
     <Compile Include="Helpers\CollectionHelper.cs" />
     <Compile Include="Helpers\StringHelper.cs" />

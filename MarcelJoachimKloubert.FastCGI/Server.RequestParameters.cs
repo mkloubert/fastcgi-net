@@ -27,6 +27,7 @@
  *                                                                                                                    *
  **********************************************************************************************************************/
 
+using MarcelJoachimKloubert.FastCGI.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -53,7 +54,7 @@ namespace MarcelJoachimKloubert.FastCGI
             {
                 enc = enc ?? Encoding.UTF8;
 
-                var comparer = new CaseInsensitiveComparer();
+                var comparer = new CaseInsensitiveStringComparer();
 
                 return this.Parameters
                            .OrderBy(x => x.Key, comparer)

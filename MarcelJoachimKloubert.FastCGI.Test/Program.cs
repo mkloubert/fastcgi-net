@@ -34,11 +34,13 @@ using FastCGISettings = MarcelJoachimKloubert.FastCGI.Settings;
 
 namespace MarcelJoachimKloubert.FastCGI.Test
 {
+    #region Methods (2)
+
     internal static class Program
     {
         private static void InvokeForConsoleColor(Action action, ConsoleColor? foreColor = null, ConsoleColor? bgColor = null)
         {
-            var oldBGColor = Console.BackgroundColor; 
+            var oldBGColor = Console.BackgroundColor;
             var oldFGColor = Console.ForegroundColor;
 
             try
@@ -171,4 +173,6 @@ namespace MarcelJoachimKloubert.FastCGI.Test
 #endif
         }
     }
+
+    #endregion Methods (2)
 }

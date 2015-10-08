@@ -36,6 +36,42 @@ namespace MarcelJoachimKloubert.FastCGI
     /// </summary>
     public class FastCGIObject : MarshalByRefObject
     {
+        #region Fields (1)
+
+        /// <summary>
+        /// An object for thread safe operations.
+        /// </summary>
+        protected readonly object _SYNC;
+
+        #endregion Fields (1)
+
+        #region Constructors (1)
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FastCGIObject" /> class.
+        /// </summary>
+        /// <param name="sync">
+        /// The custom value for the <see cref="FastCGIObject._SYNC" /> field.
+        /// </param>
+        public FastCGIObject(object sync = null)
+        {
+            this._SYNC = sync ?? new object();
+        }
+
+        #endregion Constructors (1)
+
+        #region Properties (1)
+
+        /// <summary>
+        /// Gets the object for thread safe operations.
+        /// </summary>
+        public object SyncRoot
+        {
+            get { return this._SYNC; }
+        }
+
+        #endregion Properties (1)
+
         #region Methods (2)
 
         /// <summary>

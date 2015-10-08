@@ -306,8 +306,8 @@ namespace MarcelJoachimKloubert.FastCGI.Http
             /// </summary>
             protected virtual void OnInit()
             {
-                var headers = new Dictionary<string, string>(new CaseInsensitiveComparer());
-                var queryVars = new Dictionary<string, string>(new CaseInsensitiveComparer());
+                var headers = new Dictionary<string, string>(new CaseInsensitiveStringComparer());
+                var queryVars = new Dictionary<string, string>(new CaseInsensitiveStringComparer());
                 string method = null;
 
                 if (this.Context.Parameters != null)
@@ -419,7 +419,7 @@ namespace MarcelJoachimKloubert.FastCGI.Http
 
                 this._postVars = new Lazy<IDictionary<string, string>>(() =>
                     {
-                        var postVars = new Dictionary<string, string>(new CaseInsensitiveComparer());
+                        var postVars = new Dictionary<string, string>(new CaseInsensitiveStringComparer());
 
                         if ("POST" == method)
                         {
